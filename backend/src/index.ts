@@ -39,7 +39,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: config.NODE_ENV
+    environment: config.nodeEnv
   });
 });
 
@@ -59,19 +59,19 @@ app.use((req, res) => {
 });
 
 // Start server
-const PORT = config.PORT;
+const PORT = config.port;
 app.listen(PORT, () => {
   console.log('\n=================================');
   console.log('🚀 Transparens AI Backend Server');
   console.log('=================================');
-  console.log(`Environment: ${config.NODE_ENV}`);
+  console.log(`Environment: ${config.nodeEnv}`);
   console.log(`Port: ${PORT}`);
   console.log(`Server URL: http://localhost:${PORT}`);
   console.log('\nAvailable endpoints:');
   console.log(`  GET  http://localhost:${PORT}/health`);
   console.log(`  POST http://localhost:${PORT}/api/answer`);
   console.log('\nConfiguration:');
-  console.log(`  EXA_API_KEY: ${config.EXA_API_KEY ? '✓ Set' : '✗ Not set'}`);
-  console.log(`  LLM_API_KEY: ${config.LLM_API_KEY ? '✓ Set' : '✗ Not set'}`);
+  console.log(`  EXA_API_KEY: ${config.exaApiKey ? '✓ Set' : '✗ Not set'}`);
+  console.log(`  LLM_API_KEY: ${config.llmApiKey ? '✓ Set' : '✗ Not set'}`);
   console.log('=================================\n');
 });

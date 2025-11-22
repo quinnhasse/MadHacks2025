@@ -16,19 +16,29 @@ dotenv.config({
  */
 
 export interface Config {
-  EXA_API_KEY: string;
-  LLM_API_KEY: string;
-  PORT: number;
-  NODE_ENV: string;
+  exaApiKey: string;
+  llmApiKey: string;
+  port: number;
+  nodeEnv: string;
 }
 
 export function loadConfig(): Config {
-  return {
-    EXA_API_KEY: process.env.EXA_API_KEY || '',
-    LLM_API_KEY: process.env.LLM_API_KEY || '',
-    PORT: parseInt(process.env.PORT || '3001', 10),
-    NODE_ENV: process.env.NODE_ENV || 'development',
+  const cfg = {
+    exaApiKey: process.env.EXA_API_KEY || '',
+    llmApiKey: process.env.LLM_API_KEY || '',
+    port: parseInt(process.env.PORT || '3001', 10),
+    nodeEnv: process.env.NODE_ENV || 'development',
   };
+
+  // Safe logging - never log API keys themselves
+  if (!cfg.exaApiKey) {
+    console.warn('[Config] Warning: EXA_API_KEY is not set');
+  }
+  if (!cfg.llmApiKey) {
+    console.warn('[Config] Warning: LLM_API_KEY is not set');
+  }
+
+  return cfg;
 }
 
 // Export singleton config instance
