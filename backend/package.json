@@ -1,6 +1,7 @@
 {
   "name": "transparens-ai-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend API for Transparens AI - Transparent AI answer system with evidence graph",
   "main": "dist/index.js",
   "scripts": {
