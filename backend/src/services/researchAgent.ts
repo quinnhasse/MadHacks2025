@@ -13,7 +13,6 @@ import { config } from '../config/env';
  * @returns Array of structured Source objects with URLs, snippets, and metadata
  *
  * TODO: Implement actual Exa integration
- * - Install Exa SDK: npm install exa-js
  * - Use config.EXA_API_KEY for authentication
  * - Call Exa's search API with the question
  * - Map Exa results to Source type:
