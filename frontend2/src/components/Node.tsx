@@ -120,8 +120,7 @@ export default function Node({ node, isHighlighted, onClick, animationProgress }
         <meshBasicMaterial
           color="#000000"
           transparent
-          opacity={0.0}
-          depthWrite
+          opacity={0.72}
         />
       </mesh>
 
@@ -131,7 +130,6 @@ export default function Node({ node, isHighlighted, onClick, animationProgress }
         <meshBasicMaterial
           color="#808080"
           wireframe
-          transparent
           opacity={(isHighlighted ? 0.7 : 0.4) * animationProgress}
         />
       </mesh>
