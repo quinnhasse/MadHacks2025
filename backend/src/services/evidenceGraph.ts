@@ -12,6 +12,8 @@ import {
   Source,
   AnswerBlock
 } from '../types/shared';
+import { secondarySourceAgent, SecondarySourceNode } from './secondarySourceAgent';
+import { semanticGraphBuilder, EmbeddableNode } from './semanticGraphBuilder';
 
 /**
  * Custom error for graph building failures
@@ -24,18 +26,28 @@ export class GraphBuildError extends Error {
 }
 
 /**
- * Builds an evidence graph with answer at center
+ * Builds a multi-layer evidence graph with answer at center
  *
  * Graph structure:
- * - Center: Answer root node
- * - Layer 1: Answer blocks radiating from center
- * - Layer 2: Sources at periphery
- * - Side: Question node connected to answer root
+ * - Layer 0: Answer root node + question node
+ * - Layer 1: Answer blocks (conceptual branches) radiating from center
+ * - Layer 2: Direct sources at periphery
+ * - Layer 3: Secondary sources (supporting concepts)
  *
  * Edges:
- * - "q" -> "answer" with relation "answers"
- * - "answer" -> "ans-X" with relation "answers"
- * - "ans-X" -> "sY" with relation "supports"
+ * - Structural: "q" -> "answer" -> "ans-X" -> "sY" (high weights)
+ * - Supporting: "sY" -> "sec-sY-Z" with relation "underpins"
+ * - Semantic: weighted edges between related nodes
+ *
+ * This function orchestrates:
+ * 1. Base tree structure (L0-L2)
+ * 2. Secondary concept extraction (L3)
+ * 3. Semantic similarity edges
+ *
+ * All enhancement steps (L3, semantic) use graceful degradation:
+ * - If secondarySourceAgent fails, continue without L3
+ * - If semanticGraphBuilder fails, continue without semantic edges
+ * - Never throws errors from enhancement steps
  *
  * @param question - The original user question
  * @param answer - The structured answer with blocks
@@ -43,11 +55,11 @@ export class GraphBuildError extends Error {
  * @returns EvidenceGraph with nodes, edges, and metadata
  * @throws GraphBuildError if validation fails
  */
-export function buildEvidenceGraph(
+export async function buildEvidenceGraph(
   question: string,
   answer: AnswerPayload,
   sources: Source[]
-): EvidenceGraph {
+): Promise<EvidenceGraph> {
   // Validation
   validateInputs(question, answer, sources);
 
@@ -77,11 +89,12 @@ export function buildEvidenceGraph(
     }
   });
 
-  // 3. Edge: question → answer_root
+  // 3. Edge: question → answer_root (high weight for structural edges)
   edges.push({
     from: 'q',
     to: 'answer',
-    relation: 'answers'
+    relation: 'answers',
+    weight: 1.0
   });
 
   // 4. Create answer block nodes (Layer 1)
@@ -93,15 +106,18 @@ export function buildEvidenceGraph(
       metadata: {
         fullText: block.text,
         blockType: block.type,
-        layer: 1
+        layer: 1,
+        branchId: block.id, // Each block is its own branch
+        primaryParentId: 'answer'
       }
     });
 
-    // Edge: answer_root → block
+    // Edge: answer_root → block (high weight for structural edges)
     edges.push({
       from: 'answer',
       to: block.id,
-      relation: 'answers'
+      relation: 'answers',
+      weight: 1.0
     });
 
     // Edges: block → sources (with deduplication)
@@ -122,25 +138,38 @@ export function buildEvidenceGraph(
         edges.push({
           from: block.id,
           to: sourceId,
-          relation: 'supports'
+          relation: 'supports',
+          weight: 0.95 // High weight for citation edges
         });
       }
     }
   }
 
-  // 5. Create source nodes (Layer 2)
-  // Calculate citation counts for metadata
+  // 5. Create direct source nodes (Layer 2)
+  // Calculate citation counts and determine branch affiliations
   const citationCounts = new Map<string, number>();
+  const sourceToBranches = new Map<string, Set<string>>();
+
   for (const block of answer.blocks) {
     for (const sourceId of block.source_ids) {
       citationCounts.set(sourceId, (citationCounts.get(sourceId) || 0) + 1);
+
+      if (!sourceToBranches.has(sourceId)) {
+        sourceToBranches.set(sourceId, new Set());
+      }
+      sourceToBranches.get(sourceId)!.add(block.id);
     }
   }
 
   for (const source of sources) {
+    const branches = sourceToBranches.get(source.id);
+    const primaryBranch = branches && branches.size > 0
+      ? Array.from(branches)[0]  // First block that cites this source
+      : undefined;
+
     nodes.push({
       id: source.id,
-      type: 'source',
+      type: 'direct_source',
       label: truncateText(source.title, 60),
       metadata: {
         fullText: source.snippet,
@@ -148,21 +177,139 @@ export function buildEvidenceGraph(
         score: source.score,
         layer: 2,
         citationCount: citationCounts.get(source.id) || 0,
+        branchId: primaryBranch,
+        primaryParentId: primaryBranch,
         ...source.metadata
       }
     });
   }
 
-  // 6. Add graph-level metadata
+  // 6. Add Layer 3: Secondary sources (supporting concepts)
+  let secondaryNodes: SecondarySourceNode[] = [];
+  try {
+    console.log('[EvidenceGraph] Step 3: Extracting secondary concepts (Layer 3)...');
+    secondaryNodes = await secondarySourceAgent(question, answer, sources);
+
+    for (const secNode of secondaryNodes) {
+      // Add secondary source node
+      nodes.push({
+        id: secNode.id,
+        type: 'secondary_source',
+        label: secNode.title,
+        metadata: {
+          fullText: secNode.text,
+          layer: 3,
+          primaryParentId: secNode.parentSourceId,
+          parentSourceId: secNode.parentSourceId,
+          relatedBlockIds: secNode.relatedBlockIds,
+          branchId: findBranchId(secNode.parentSourceId, nodes),
+          importance: secNode.importance
+        }
+      });
+
+      // Add structural edge: direct_source -> secondary_source
+      edges.push({
+        from: secNode.parentSourceId,
+        to: secNode.id,
+        relation: 'underpins',
+        weight: 0.9
+      });
+    }
+
+    console.log(`[EvidenceGraph] Added ${secondaryNodes.length} secondary concept nodes`);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[EvidenceGraph] Secondary source extraction failed, continuing without L3: ${errorMsg}`);
+  }
+
+  // 7. Add semantic edges based on embeddings
+  try {
+    console.log('[EvidenceGraph] Step 4: Building semantic edges...');
+
+    // Build list of embeddable nodes
+    const embeddableNodes: EmbeddableNode[] = nodes
+      .filter(node => node.type !== 'answer_root' && node.type !== 'question')
+      .map(node => ({
+        id: node.id,
+        type: node.type,
+        text: node.metadata?.fullText || node.label
+      }));
+
+    console.log(`[EvidenceGraph] Embeddable nodes: ${embeddableNodes.length}`);
+
+    if (embeddableNodes.length >= 2) {
+      const semanticEdges = await semanticGraphBuilder(embeddableNodes, {
+        topK: 4,
+        minSimilarity: 0.65,
+        maxEdges: 40
+      });
+
+      // Add semantic edges (avoid duplicates)
+      for (const semEdge of semanticEdges) {
+        // Check if edge already exists (in either direction)
+        const existsForward = edges.some(e => e.from === semEdge.from && e.to === semEdge.to);
+        const existsReverse = edges.some(e => e.from === semEdge.to && e.to === semEdge.from);
+
+        if (!existsForward && !existsReverse) {
+          edges.push({
+            from: semEdge.from,
+            to: semEdge.to,
+            relation: 'semantic_related',
+            weight: semEdge.similarity
+          });
+        }
+      }
+
+      console.log(`[EvidenceGraph] Added ${semanticEdges.length} semantic edges`);
+    } else {
+      console.log('[EvidenceGraph] Insufficient nodes for semantic edges, skipping');
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[EvidenceGraph] Semantic graph building failed, continuing without semantic edges: ${errorMsg}`);
+  }
+
+  // 8. Count nodes by layer for metadata
+  const nodeCounts = countNodesByLayer(nodes);
+
+  // 9. Add graph-level metadata
   return {
     nodes,
     edges,
     metadata: {
       sourceCount: sources.length,
       blockCount: answer.blocks.length,
-      createdAt: new Date()
+      createdAt: new Date(),
+      totalNodes: nodes.length,
+      totalEdges: edges.length,
+      nodesByLayer: nodeCounts,
+      secondarySourceCount: secondaryNodes.length
     }
   };
+}
+
+/**
+ * Helper: Find the branchId for a given node
+ */
+function findBranchId(nodeId: string, nodes: EvidenceNode[]): string | undefined {
+  const node = nodes.find(n => n.id === nodeId);
+  return node?.metadata?.branchId;
+}
+
+/**
+ * Helper: Count nodes by layer
+ */
+function countNodesByLayer(nodes: EvidenceNode[]): Record<number, number> {
+  const counts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
+
+  for (const node of nodes) {
+    const layer = node.metadata?.layer;
+    if (layer !== undefined && layer in counts) {
+      counts[layer]++;
+    }
+  }
+
+  return counts;
 }
 
 /**

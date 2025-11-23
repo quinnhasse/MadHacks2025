@@ -309,10 +309,17 @@ CRITICAL RULES:
 1. ONLY use information explicitly stated in the provided sources
 2. ALWAYS cite sources by their IDs (e.g., "s1", "s2") in the source_ids array
 3. If the sources don't contain enough information, say so explicitly
-4. Break your answer into logical blocks (paragraphs or bullet points)
-5. Each block must reference at least one source in its source_ids array
+4. Break your answer into CONCEPTUAL blocks - each block should represent a single core concept or idea
+5. Each block must reference at least one source (preferably 2-4 sources) in its source_ids array
 6. Never make claims without source attribution
 7. Return ONLY valid JSON matching the exact schema below
+
+CONCEPTUAL BLOCK STRUCTURE:
+- Each block = ONE distinct concept related to the question
+- Simple questions may have 1-2 conceptual blocks
+- Complex questions may naturally require 3-8 conceptual blocks
+- Each concept should form a logical branch that the frontend can visualize as radiating from the central answer
+- Don't arbitrarily split paragraphs - only create new blocks for genuinely distinct concepts
 
 OUTPUT FORMAT:
 Return a JSON object with this exact structure:
@@ -322,27 +329,33 @@ Return a JSON object with this exact structure:
     {
       "id": "ans-1",
       "type": "paragraph",
-      "text": "First paragraph of your answer...",
+      "text": "First conceptual component of your answer...",
       "source_ids": ["s1", "s2"]
     },
     {
       "id": "ans-2",
       "type": "bullet",
-      "text": "Key point as a bullet...",
-      "source_ids": ["s3"]
+      "text": "Second distinct concept as a key point...",
+      "source_ids": ["s2", "s3"]
     }
   ]
 }
 
 BLOCK TYPES:
-- "paragraph": Use for explanatory text, definitions, or detailed points
-- "bullet": Use for lists, key findings, or discrete facts
+- "paragraph": Use for explanatory text, definitions, or detailed conceptual explanations
+- "bullet": Use for lists, key findings, or discrete facts that form a concept
 
 BLOCK IDs:
 - Must follow pattern "ans-1", "ans-2", "ans-3", etc.
 - Must be unique and sequential
 
-Remember: Your credibility depends on accurate source attribution. When in doubt, cite the source.`;
+SOURCE ATTRIBUTION:
+- Each block should cite 1-4 sources that support that concept
+- Prefer 2-4 sources per block when available and relevant
+- More complex concepts may naturally require more source support
+- Your credibility depends on accurate source attribution
+
+Remember: Think in terms of conceptual branches, not arbitrary text chunks. Each block is a building block of understanding.`;
 }
 
 /**

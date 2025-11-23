@@ -29,19 +29,24 @@ export interface AnswerPayload {
 
 /**
  * Node types in the evidence graph
- * - question: User's original query (side connection to answer)
- * - answer_root: Central node representing the complete answer
- * - answer_block: Individual answer components (Layer 1 from center)
- * - source: Evidence supporting answer blocks (Layer 2 from center)
+ * - question: User's original query (side connection to answer) - Layer 0
+ * - answer_root: Central node representing the complete answer - Layer 0
+ * - answer_block: Individual answer components (conceptual branches) - Layer 1
+ * - direct_source: Primary evidence supporting answer blocks - Layer 2
+ * - secondary_source: Supporting concepts that underpin direct sources - Layer 3
+ *
+ * Note: "source" is maintained as backward-compatible alias for "direct_source"
  */
-export type EvidenceNodeType = "question" | "answer_root" | "answer_block" | "source";
+export type EvidenceNodeType = "question" | "answer_root" | "answer_block" | "source" | "direct_source" | "secondary_source";
 
 /**
  * Edge relation types
  * - answers: question→answer_root, answer_root→blocks
- * - supports: blocks→sources (evidence relationship)
+ * - supports: blocks→direct_sources (evidence relationship)
+ * - underpins: direct_source→secondary_source (supporting concept relationship)
+ * - semantic_related: weighted semantic similarity between nodes
  */
-export type EvidenceRelation = "answers" | "supports";
+export type EvidenceRelation = "answers" | "supports" | "underpins" | "semantic_related";
 
 /**
  * Represents a node in the evidence graph
@@ -70,11 +75,26 @@ export interface EvidenceNode {
     /** Relevance score (for source nodes) */
     score?: number;
 
-    /** Layer/tier for 3D positioning (0=center, 1=blocks, 2=sources) */
-    layer?: number;
+    /** Layer/tier for 3D positioning (0=center, 1=blocks, 2=direct_sources, 3=secondary_sources) */
+    layer?: 0 | 1 | 2 | 3;
 
     /** Citation count (for source nodes) */
     citationCount?: number;
+
+    /** Which conceptual branch this node belongs to (e.g., "ans-1") */
+    branchId?: string;
+
+    /** The primary parent node ID in the tree structure */
+    primaryParentId?: string;
+
+    /** Importance/significance score (0-1) */
+    importance?: number;
+
+    /** Parent source ID (for secondary_source nodes) */
+    parentSourceId?: string;
+
+    /** Related block IDs (for secondary_source nodes) */
+    relatedBlockIds?: string[];
 
     /** Any additional properties */
     [key: string]: any;
@@ -94,9 +114,12 @@ export interface EvidenceEdge {
   /** Semantic relationship type */
   relation: EvidenceRelation;
 
+  /** Edge weight/strength (0-1), used for semantic_related edges and visualization */
+  weight?: number;
+
   /** Optional metadata for future enhancement */
   metadata?: {
-    /** Edge weight/strength (0-1) */
+    /** Alternative edge weight/strength (0-1) */
     strength?: number;
 
     /** Citation count (how many times this connection appears) */

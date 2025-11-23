@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "test:research": "tsx scripts/test-research-agent.ts",
     "test:answer": "tsx scripts/test-answer-agent.ts",
-    "test:graph": "tsx scripts/test-evidence-graph.ts"
+    "test:graph": "tsx scripts/test-evidence-graph.ts",
+    "test:enhanced": "tsx scripts/test-enhanced-graph.ts"
   },
   "keywords": [
     "ai",

@@ -174,18 +174,29 @@ async function handleAnswer(req: Request, res: Response): Promise<void> {
     }
 
     // ========================================================================
-    // STEP 3: BUILD EVIDENCE GRAPH
+    // STEP 3: BUILD EVIDENCE GRAPH (with L3 + semantic edges)
     // ========================================================================
     try {
       const graphStart = Date.now();
       console.log(`[${getTimestamp()}] [API] Building evidence graph...`);
 
-      evidenceGraph = buildEvidenceGraph(question, answer, sources);
+      evidenceGraph = await buildEvidenceGraph(question, answer, sources);
       graphLatencyMs = Date.now() - graphStart;
 
       console.log(`[${getTimestamp()}] [API] ✓ Evidence graph built`);
       console.log(`[${getTimestamp()}] [API]   - Total nodes: ${evidenceGraph.nodes.length}`);
       console.log(`[${getTimestamp()}] [API]   - Total edges: ${evidenceGraph.edges.length}`);
+      console.log(`[${getTimestamp()}] [API]   - Nodes by layer:`);
+
+      // Log nodes by layer
+      if (evidenceGraph.metadata?.nodesByLayer) {
+        const layerCounts = evidenceGraph.metadata.nodesByLayer as Record<number, number>;
+        console.log(`[${getTimestamp()}] [API]     • Layer 0 (center): ${layerCounts[0] || 0}`);
+        console.log(`[${getTimestamp()}] [API]     • Layer 1 (blocks): ${layerCounts[1] || 0}`);
+        console.log(`[${getTimestamp()}] [API]     • Layer 2 (direct sources): ${layerCounts[2] || 0}`);
+        console.log(`[${getTimestamp()}] [API]     • Layer 3 (secondary sources): ${layerCounts[3] || 0}`);
+      }
+
       console.log(`[${getTimestamp()}] [API]   - Graph nodes by type:`);
 
       // Count nodes by type for detailed logging
@@ -196,6 +207,17 @@ async function handleAnswer(req: Request, res: Response): Promise<void> {
 
       Object.entries(nodeCounts).forEach(([type, count]) => {
         console.log(`[${getTimestamp()}] [API]     • ${type}: ${count}`);
+      });
+
+      // Count edges by relation
+      const edgeCounts = evidenceGraph.edges.reduce((acc, edge) => {
+        acc[edge.relation] = (acc[edge.relation] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      console.log(`[${getTimestamp()}] [API]   - Edges by relation:`);
+      Object.entries(edgeCounts).forEach(([relation, count]) => {
+        console.log(`[${getTimestamp()}] [API]     • ${relation}: ${count}`);
       });
 
       console.log(`[${getTimestamp()}] [API]   - Graph latency: ${graphLatencyMs}ms`);
