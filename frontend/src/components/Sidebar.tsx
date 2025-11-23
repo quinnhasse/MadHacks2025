@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+import { API_BASE_URL } from '../services/api'
 import { Node, QuestionNode, AnswerRootNode, AnswerBlockNode, DirectSourceNode, SecondarySourceNode } from '../types'
 import './Sidebar.css'
 
@@ -7,7 +9,30 @@ interface SidebarProps {
   onToggle: () => void
 }
 
+type ExpandApiResponse = {
+  title: string
+  expandedReasoning: string
+  meta?: {
+    model?: string
+    latency_ms?: number
+  }
+}
+
 export default function Sidebar({ node, isExpanded, onToggle }: SidebarProps) {
+  const [expandedReasoning, setExpandedReasoning] = useState<string | null>(null)
+  const [isExpanding, setIsExpanding] = useState(false)
+  const [expandError, setExpandError] = useState<string | null>(null)
+  const [expandMeta, setExpandMeta] = useState<string | null>(null)
+  const latestNodeIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    latestNodeIdRef.current = node?.id ?? null
+    setExpandedReasoning(null)
+    setIsExpanding(false)
+    setExpandError(null)
+    setExpandMeta(null)
+  }, [node?.id])
+
   const renderContent = () => {
     if (!node) return null
 
@@ -33,6 +58,69 @@ export default function Sidebar({ node, isExpanded, onToggle }: SidebarProps) {
       )
     } else if (node.type === 'answer_block') {
       const blockNode = node as AnswerBlockNode
+      const reasoningText = blockNode.metadata.fullText || ''
+      const blockTitle = (blockNode.displayHeading || blockNode.label || 'Answer Block').trim() || 'Answer Block'
+      const trimmedReasoning = reasoningText.trim()
+
+      const blockRequestId = blockNode.id
+      const isActiveRequest = () => latestNodeIdRef.current === blockRequestId
+
+      const handleExpandReasoning = async () => {
+        if (isExpanding) return
+        if (!trimmedReasoning) {
+          setExpandError('Reasoning is empty and cannot be expanded.')
+          return
+        }
+
+        setIsExpanding(true)
+        setExpandError(null)
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/expand`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: blockTitle,
+              reasoning: reasoningText,
+            }),
+          })
+
+          if (!isActiveRequest()) return
+
+          if (!response.ok) {
+            const errorPayload = await response.json().catch(() => null)
+            if (!isActiveRequest()) return
+            const message = errorPayload?.error || 'Unable to expand reasoning right now.'
+            setExpandError(message)
+            return
+          }
+
+          const data = (await response.json()) as ExpandApiResponse
+          if (!isActiveRequest()) return
+
+          if (!data?.expandedReasoning) {
+            setExpandError('Expanded reasoning is missing from the response.')
+            return
+          }
+
+          if (!isActiveRequest()) return
+          setExpandedReasoning(data.expandedReasoning)
+          const metaPieces: string[] = []
+          if (data.meta) {
+            if (data.meta.model) metaPieces.push(data.meta.model)
+            if (data.meta.latency_ms !== undefined) metaPieces.push(`${data.meta.latency_ms} ms`)
+          }
+          setExpandMeta(metaPieces.join(' · ') || null)
+        } catch (err) {
+          if (!isActiveRequest()) return
+          setExpandError('Unable to reach the expand service.')
+        } finally {
+          setIsExpanding(false)
+        }
+      }
+
       return (
         <>
           {blockNode.metadata.blockType && (
@@ -44,6 +132,24 @@ export default function Sidebar({ node, isExpanded, onToggle }: SidebarProps) {
           <div className="content-section">
             <h4>Reasoning</h4>
             <p>{blockNode.metadata.fullText}</p>
+            <div className="expand-control">
+              {!expandedReasoning ? (
+                <button
+                  type="button"
+                  className="expand-button"
+                  onClick={handleExpandReasoning}
+                  disabled={isExpanding || !trimmedReasoning}
+                >
+                  {isExpanding ? 'Expanding…' : 'Expand'}
+                </button>
+              ) : (
+                <div style={{width: '110%', marginLeft: '-5%' }} className="expanded-reasoning-block">
+                  <p className="expanded-reasoning">{expandedReasoning}</p>
+                  {expandMeta && <><br/><p className="expanded-reasoning-meta">{expandMeta}</p></>}
+                </div>
+              )}
+              {expandError && <p className="expand-error">{expandError}</p>}
+            </div>
           </div>
         </>
       )

@@ -8,6 +8,8 @@ const API_CONFIG = {
   timeout: 60000, // 60 seconds
 };
 
+export const API_BASE_URL = API_CONFIG.baseUrl;
+
 /**
  * Custom error class for API errors
  */

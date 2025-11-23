@@ -6,6 +6,7 @@
 import express from 'express';
 import { config } from './config/env';
 import { registerAnswerRoute } from './routes/answerRoute';
+import { registerExpandRoute } from './routes/expandRoute';
 import progressRoute from './routes/progressRoute';
 
 // Load environment variables from .env file
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 
 // Register routes
 registerAnswerRoute(app);
+registerExpandRoute(app);
 app.use('/api/progress', progressRoute);
 
 // 404 handler
@@ -56,6 +58,7 @@ app.use((req, res) => {
     availableRoutes: [
       'GET /health',
       'POST /api/answer',
+      'POST /expand',
       'GET /api/progress/:jobId'
     ]
   });
@@ -73,6 +76,7 @@ app.listen(PORT, () => {
   console.log('\nAvailable endpoints:');
   console.log(`  GET  http://localhost:${PORT}/health`);
   console.log(`  POST http://localhost:${PORT}/api/answer`);
+  console.log(`  POST http://localhost:${PORT}/expand`);
   console.log(`  GET  http://localhost:${PORT}/api/progress/:jobId`);
   console.log('\nConfiguration:');
   console.log(`  EXA_API_KEY: ${config.exaApiKey ? '✓ Set' : '✗ Not set'}`);
