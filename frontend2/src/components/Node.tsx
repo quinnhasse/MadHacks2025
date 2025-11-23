@@ -51,30 +51,17 @@ export default function Node({ node, isHighlighted, onClick, animationProgress, 
   const wireframeRef = useRef<Mesh>(null)
   const textRef = useRef<Group>(null)
   const [hovered, setHovered] = useState(false)
+  const currentScaleRef = useRef(1) // Track current interpolated scale
   const { camera } = useThree()
 
-  useFrame((state) => {
-    if (meshRef.current) {
-      // Gentle floating animation
-      const t = state.clock.getElapsedTime()
-      meshRef.current.position.y += Math.sin(t * 0.5 + (node.position?.[0] || 0)) * 0.001
-    }
-
-    // Make text always face camera
-    if (textRef.current) {
-      textRef.current.quaternion.copy(camera.quaternion)
-    }
-
-    // Pulse effect during spawn (first 30% of animation)
-    if (wireframeRef.current && animationProgress < 0.3) {
-      const pulseIntensity = Math.sin(animationProgress * Math.PI * 10) * 0.15
-      wireframeRef.current.scale.setScalar(animationProgress + pulseIntensity + 1)
-    }
-  })
-
-  const baseConfig = nodeTypeConfig[node.type]
+  // Target scale based on state
+  const targetBaseScale = hovered ? 1.2 : isHighlighted ? 1.1 : 1
+  const animScale = animationProgress < 1
+    ? animationProgress * (1 + (1 - animationProgress) * 0.3) // Overshoot then settle
+    : 1
 
   // Get color based on color mode
+  const baseConfig = nodeTypeConfig[node.type]
   const nodeColor = useMemo(() => {
     if (colorMode === 'white') {
       return baseConfig.color
@@ -84,12 +71,38 @@ export default function Node({ node, isHighlighted, onClick, animationProgress, 
 
   const config = { ...baseConfig, color: nodeColor }
 
-  // Animation-based scaling: elastic pop-in effect
-  const baseScale = hovered ? 1.2 : isHighlighted ? 1.1 : 1
-  const animScale = animationProgress < 1
-    ? animationProgress * (1 + (1 - animationProgress) * 0.3) // Overshoot then settle
-    : 1
-  const scale = baseScale * animScale
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Gentle floating animation
+      const t = state.clock.getElapsedTime()
+      meshRef.current.position.y += Math.sin(t * 0.5 + (node.position?.[0] || 0)) * 0.001
+    }
+
+    // Smooth scale transition using lerp
+    const targetScale = targetBaseScale * animScale
+    currentScaleRef.current += (targetScale - currentScaleRef.current) * 0.15
+
+    // Make text always face camera and adjust position based on scale
+    if (textRef.current) {
+      textRef.current.quaternion.copy(camera.quaternion)
+
+      // Calculate dynamic text offset based on node type and scale
+      const baseOffset = node.type === 'answer_root' ? 1.0 : 0.5
+      const scaleBasedOffset = node.type === 'answer_root'
+        ? (currentScaleRef.current - 1) *  1.1  // Larger offset for answer_root
+        : (currentScaleRef.current - 1) * 0.3  // Subtle offset for other nodes
+
+      textRef.current.position.y = config.radius + baseOffset + scaleBasedOffset
+    }
+
+    // Pulse effect during spawn (first 30% of animation)
+    if (wireframeRef.current && animationProgress < 0.3) {
+      const pulseIntensity = Math.sin(animationProgress * Math.PI * 10) * 0.15
+      wireframeRef.current.scale.setScalar(animationProgress + pulseIntensity + 1)
+    }
+  })
+
+  const scale = currentScaleRef.current
 
   // Get display text - prioritize short labels for better visualization
   const getDisplayText = (): string => {
@@ -175,9 +188,15 @@ export default function Node({ node, isHighlighted, onClick, animationProgress, 
       )}
 
       {/* Label - billboard (always faces camera) */}
-      <group ref={textRef} position={[0, config.radius + 0.5, 0]}>
+      <group ref={textRef}>
         <Text
-          fontSize={node.type === 'question' || node.type === 'answer_root' ? 0.6 : node.type === 'answer_block' ? 0.4 : 0.3}
+          fontSize={node.type === 'answer_root'
+            ? 1.1
+            : node.type === 'question'
+              ? 0.5
+              : node.type === 'answer_block'
+                ? 0.35
+                : 0.25}
           color="white"
           anchorX="center"
           anchorY="middle"

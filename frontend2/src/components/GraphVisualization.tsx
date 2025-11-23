@@ -10,6 +10,8 @@ import './GraphVisualization.css'
 import { Vector3, Frustum, Matrix4, Group } from 'three'
 import { getNodeRadius } from '../utils/nodeVisuals'
 import { ParticleSystem } from './ParticleSystem'
+import ReturnToAnswerButton from './ReturnToAnswerButton'
+import './ReturnToAnswerButton.css'
 
 interface GraphVisualizationProps {
   nodes: GraphNode[]
@@ -245,6 +247,8 @@ export default function GraphVisualization({
   const [particlePulseTrigger, setParticlePulseTrigger] = useState(0)
   const animationFrameRef = useRef<number>()
   const graphGroupRef = useRef<Group>(null)
+  const orbitControlsRef = useRef<any>(null)
+  const cameraAnimationRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (nodes.length > 0) {
@@ -463,6 +467,9 @@ export default function GraphVisualization({
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
+      if (cameraAnimationRef.current !== null) {
+        cancelAnimationFrame(cameraAnimationRef.current)
+      }
     }
   }, [])
 
@@ -471,12 +478,84 @@ export default function GraphVisualization({
   }
 
   const handleInteractionStart = () => {
+    // Cancel any ongoing camera animation
+    if (cameraAnimationRef.current !== null) {
+      cancelAnimationFrame(cameraAnimationRef.current)
+      cameraAnimationRef.current = null
+
+      // Re-enable damping if it was disabled
+      if (orbitControlsRef.current) {
+        orbitControlsRef.current.enableDamping = true
+      }
+    }
+
     setIsUserInteracting(true)
     onInteraction()
   }
 
   const handleInteractionEnd = () => {
     setIsUserInteracting(false)
+  }
+
+  const handleReturnToAnswer = () => {
+    if (!orbitControlsRef.current) return
+
+    // Cancel any existing animation
+    if (cameraAnimationRef.current !== null) {
+      cancelAnimationFrame(cameraAnimationRef.current)
+      cameraAnimationRef.current = null
+    }
+
+    // Find the answer node position (should be at [0, 0, 0])
+    const answerNode = positionedNodes.find(n => n.type === 'answer_root')
+    if (!answerNode || !answerNode.position) return
+
+    const controls = orbitControlsRef.current
+    const targetPos = new Vector3(...answerNode.position)
+
+    // Store starting positions
+    const startCameraPos = controls.object.position.clone()
+    const startTargetPos = controls.target.clone()
+
+    // Calculate final positions
+    const finalTargetPos = targetPos.clone()
+    // Position camera with offset: farther away and at an angle for better view
+    const finalCameraPos = new Vector3(20, 40, 15)
+
+    // Disable damping during animation to prevent jitter/flip
+    controls.enableDamping = false
+
+    const startTime = Date.now()
+    const duration = 1200 // 1.2 seconds for a nice smooth animation
+
+    const animateCamera = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+
+      // Ease in-out cubic for smooth start and end
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2
+
+      // Interpolate both camera position and target
+      const newCameraPos = new Vector3().lerpVectors(startCameraPos, finalCameraPos, eased)
+      const newTargetPos = new Vector3().lerpVectors(startTargetPos, finalTargetPos, eased)
+
+      // Apply new positions
+      controls.object.position.copy(newCameraPos)
+      controls.target.copy(newTargetPos)
+      controls.object.lookAt(newTargetPos)
+
+      if (progress < 1) {
+        cameraAnimationRef.current = requestAnimationFrame(animateCamera)
+      } else {
+        // Animation complete - cleanup
+        cameraAnimationRef.current = null
+        controls.enableDamping = true
+      }
+    }
+
+    animateCamera()
   }
 
   return (
@@ -493,12 +572,13 @@ export default function GraphVisualization({
           onVisibilityChange={setNodesInCameraView}
         />
         <OrbitControls
+          ref={orbitControlsRef}
           enableDamping
           dampingFactor={0.05}
           rotateSpeed={0.5}
           zoomSpeed={0.8}
-          minDistance={10}
-          maxDistance={100}
+          minDistance={0}
+          maxDistance={500}
           mouseButtons={{
             LEFT: 2,   // Pan (was rotate)
             MIDDLE: 1, // Zoom
@@ -585,6 +665,7 @@ export default function GraphVisualization({
           })}
         </group>
       </Canvas>
+      <ReturnToAnswerButton onReturnToAnswer={handleReturnToAnswer} />
     </div>
   )
 }
