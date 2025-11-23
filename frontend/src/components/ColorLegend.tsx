@@ -1,94 +1,106 @@
 import React, { useState } from 'react';
 import { Key } from 'lucide-react';
 import { ColorEngine } from '../utils/colorPalettes';
-import { PANEL_STYLES } from '../utils/constants';
+import { PANEL_STYLES, SEMANTIC_COLORS } from '../utils/constants';
 import type { ColorMode, ColorPaletteName } from '../types';
 
 interface ColorLegendProps {
   colorMode: ColorMode;
   palette?: ColorPaletteName;
+  onHoverType?: (type: string | null) => void;
+  onToggleType?: (type: string) => void;
+  activeSpotlight?: string | null;
 }
 
 interface LegendEntry {
+  id: string;
   label: string;
   color: string;
   description: string;
 }
 
-const ColorLegend: React.FC<ColorLegendProps> = ({ colorMode, palette = 'tactical' }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+// Unified Semantic Naming System
+const LEGEND_DEFINITIONS = {
+  QUERY: {
+    label: 'ANSWER ROOT',
+    description: 'Central topic',
+  },
+  LOGIC: {
+    label: 'ANSWER CHUNKS',
+    description: 'Key reasoning blocks',
+  },
+  EVIDENCE: {
+    label: 'DIRECT SOURCES',
+    description: 'Direct verified sources',
+  },
+  CONTEXT: {
+    label: 'CONCEPTS',
+    description: 'Supporting info',
+  }
+};
+
+const ColorLegend: React.FC<ColorLegendProps> = ({ 
+  colorMode, 
+  palette = 'tactical',
+  onHoverType,
+  onToggleType,
+  activeSpotlight
+}) => {
+  // AUTOMATE LEGEND DISPLAY: Open by default
+  const [isExpanded, setIsExpanded] = useState(true);
   const colorEngine = new ColorEngine(palette);
 
   const getLegendEntries = (): LegendEntry[] => {
-    switch (colorMode) {
-      case 'white':
-        return []; // Hidden in monochrome mode
+    const grayscale = {
+      query: '#333333',
+      logic: '#666666',
+      evidence: '#999999',
+      context: '#cccccc'
+    };
 
+    let colors;
+
+    switch (colorMode) {
       case 'byLevel':
       case 'byTier':
-        // By Tier mode - show layer-based colors
-        return [
-          {
-            label: 'Layer 1',
-            color: colorEngine.palette.tier1,
-            description: 'Conceptual branches radiating from center'
-          },
-          {
-            label: 'Layer 2',
-            color: colorEngine.palette.tier2,
-            description: 'Primary evidence and direct sources'
-          },
-          {
-            label: 'Layer 3',
-            color: colorEngine.palette.tier3,
-            description: 'Supporting concepts and context'
-          },
-          {
-            label: 'Layer 0/4+',
-            color: colorEngine.palette.tier4,
-            description: 'Central question and answer root'
-          },
-        ];
-
       case 'byRole':
-        // By Type mode - show node type colors
-        return [
-          {
-            label: 'Question',
-            color: colorEngine.palette.principle,
-            description: 'The original query being answered'
-          },
-          {
-            label: 'Answer Root',
-            color: colorEngine.palette.fact,
-            description: 'Central hub connecting all answer blocks'
-          },
-          {
-            label: 'Answer Block',
-            color: colorEngine.palette.example,
-            description: 'Individual concepts in the answer'
-          },
-          {
-            label: 'Direct Source',
-            color: colorEngine.palette.fact,
-            description: 'Primary evidence cited in the answer'
-          },
-          {
-            label: 'Secondary Source',
-            color: colorEngine.palette.analogy,
-            description: 'Background context supporting sources'
-          },
-        ];
+        colors = {
+          query: SEMANTIC_COLORS.QUERY,
+          logic: SEMANTIC_COLORS.LOGIC,
+          evidence: SEMANTIC_COLORS.EVIDENCE,
+          context: SEMANTIC_COLORS.CONTEXT
+        };
+        break;
 
+      case 'white':
       default:
-        return [];
+        colors = grayscale;
+        break;
     }
-  };
 
-  // Don't render in white mode
-  if (colorMode === 'white') {
-    return null;
-  }
+    return [
+      {
+        id: 'QUERY',
+        ...LEGEND_DEFINITIONS.QUERY,
+        color: colors.query
+      },
+      {
+        id: 'LOGIC',
+        ...LEGEND_DEFINITIONS.LOGIC,
+        color: colors.logic
+      },
+      {
+        id: 'EVIDENCE',
+        ...LEGEND_DEFINITIONS.EVIDENCE,
+        color: colors.evidence
+      },
+      {
+        id: 'CONTEXT',
+        ...LEGEND_DEFINITIONS.CONTEXT,
+        color: colors.context
+      }
+    ];
+  };
 
   const entries = getLegendEntries();
 
@@ -97,21 +109,22 @@ const ColorLegend: React.FC<ColorLegendProps> = ({ colorMode, palette = 'tactica
       style={{
         position: 'fixed',
         bottom: PANEL_STYLES.TOP, // 16px
-        left: '64px', // 8px gap from return button (which is 40px wide + 16px from left)
+        left: '64px', // 8px gap from return button
         zIndex: 100,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
       }}
     >
-      {/* Toggle Button */}
+      {/* Toggle Button - STRICT TYPOGRAPHY */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         style={{
           height: '40px',
-          minWidth: '80px',
+          minWidth: '100px',
           padding: '0 16px',
           backgroundColor: PANEL_STYLES.BG,
+          backdropFilter: `blur(${PANEL_STYLES.BLUR})`,
           border: `1px solid ${PANEL_STYLES.BORDER}`,
           borderRadius: PANEL_STYLES.BORDER_RADIUS,
           color: '#ffffff',
@@ -119,93 +132,113 @@ const ColorLegend: React.FC<ColorLegendProps> = ({ colorMode, palette = 'tactica
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '6px',
-          fontSize: '10px',
-          fontWeight: 700,
-          letterSpacing: '1.2px',
+          gap: '8px',
+          // Header Typography Rules
+          fontSize: '10px', // text-[10px]
+          fontWeight: 700, // font-bold
+          letterSpacing: '0.1em', // tracking-widest
           textTransform: 'uppercase',
           transition: 'all 0.15s ease',
-          fontFamily: 'monospace',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+          fontFamily: 'Space Mono, monospace'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#1a1a1a';
-          e.currentTarget.style.borderColor = '#666666';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = PANEL_STYLES.BG;
           e.currentTarget.style.borderColor = PANEL_STYLES.BORDER;
+          e.currentTarget.style.backgroundColor = PANEL_STYLES.BG;
         }}
       >
         <Key size={14} />
-        KEY
+        LEGEND
       </button>
 
       {/* Expanded Legend Content */}
       {isExpanded && (
         <div
           style={{
-            width: '280px',
+            width: '240px',
             marginTop: '8px',
             backgroundColor: PANEL_STYLES.BG,
+            backdropFilter: `blur(${PANEL_STYLES.BLUR})`,
             border: `1px solid ${PANEL_STYLES.BORDER}`,
             borderRadius: PANEL_STYLES.BORDER_RADIUS,
-            padding: PANEL_STYLES.PADDING,
+            padding: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
             animation: 'fadeIn 0.2s ease',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
           }}
         >
-          {entries.map((entry) => (
-            <div
-              key={entry.label}
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-              }}
-            >
-              {/* Color Swatch - Square like in ColorControls */}
+          {entries.map((entry) => {
+            const isActive = activeSpotlight === entry.id;
+            const isDimmed = activeSpotlight && !isActive;
+
+            return (
               <div
+                key={entry.id}
                 style={{
-                  width: '10px',
-                  height: '10px',
-                  backgroundColor: entry.color,
-                  border: `1px solid ${PANEL_STYLES.BORDER}`,
-                  flexShrink: 0,
-                  marginTop: '2px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  cursor: 'pointer',
+                  padding: '6px 8px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease',
+                  opacity: isDimmed ? 0.3 : 1,
+                  background: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent'
                 }}
-              />
-              {/* Label and Description */}
-              <div style={{ flex: 1 }}>
+                onMouseEnter={() => onHoverType?.(entry.id)}
+                onMouseLeave={() => onHoverType?.(null)}
+                onClick={() => onToggleType?.(entry.id)}
+              >
+                {/* Color Swatch - Square */}
                 <div
                   style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    letterSpacing: '0.5px',
-                    color: '#ffffff',
-                    fontFamily: 'monospace',
-                    textTransform: 'uppercase',
-                    marginBottom: '2px',
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: entry.color,
+                    flexShrink: 0,
+                    marginTop: '2px',
+                    borderRadius: '1px', // Sharp square
+                    boxShadow: isActive ? `0 0 8px ${entry.color}` : 'none'
                   }}
-                >
-                  {entry.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 400,
-                    letterSpacing: '0.3px',
-                    color: '#666666',
-                    fontFamily: 'monospace',
-                    lineHeight: '1.4',
-                  }}
-                >
-                  {entry.description}
+                />
+                {/* Label and Description */}
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      // Header Typography Rules
+                      fontSize: '10px',
+                      fontWeight: 800, // Extra Bold for visibility
+                      letterSpacing: '0.1em',
+                      color: '#ffffff',
+                      textTransform: 'uppercase',
+                      marginBottom: '2px',
+                      fontFamily: 'Space Mono, monospace'
+                    }}
+                  >
+                    {entry.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 500, // Medium
+                      color: '#9ca3af', // text-gray-400
+                      lineHeight: '1.4',
+                      fontFamily: 'Space Mono, monospace'
+                    }}
+                  >
+                    {entry.description}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

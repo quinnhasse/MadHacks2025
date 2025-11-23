@@ -137,7 +137,7 @@ export interface ReasoningResponse {
 }
 
 // Layout and visualization modes
-export type LayoutMode = 'cluster' | 'circular' | 'flat' | 'globe';
+export type LayoutMode = 'cluster' | 'circular' | 'flat' | 'globe' | 'deck';
 export type ColorMode = 'white' | 'byLevel' | 'byRole' | 'byTier';
 
 export interface LayoutConfig {
