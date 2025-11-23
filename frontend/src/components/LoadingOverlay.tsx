@@ -66,7 +66,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 marginBottom: '-8px'
               }}
             >
-              The Correct Way To Launch
+              Access Full Transparency
             </div>
 
             {/* Title */}
