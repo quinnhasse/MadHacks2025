@@ -253,14 +253,18 @@ export default function GraphVisualization({
   const orbitControlsRef = useRef<any>(null)
   const cameraAnimationRef = useRef<number | null>(null)
   const previousNodeIdsRef = useRef<Set<string>>(new Set())
+  const previousLayoutModeRef = useRef<LayoutMode>(layoutMode)
 
   useEffect(() => {
     if (nodes.length > 0) {
       const currentNodeIds = new Set(nodes.map(n => n.id))
       const previousNodeIds = previousNodeIdsRef.current
+      const layoutModeChanged = previousLayoutModeRef.current !== layoutMode
 
       // Detect if this is an incremental update (new nodes added) or a full replacement
-      const isIncrementalUpdate = previousNodeIds.size > 0 &&
+      // Force full re-layout if layout mode changed
+      const isIncrementalUpdate = !layoutModeChanged &&
+        previousNodeIds.size > 0 &&
         Array.from(previousNodeIds).every(id => currentNodeIds.has(id))
 
       if (isIncrementalUpdate) {
@@ -302,14 +306,44 @@ export default function GraphVisualization({
         })
 
         // Merge existing positioned nodes with new ones
-        setPositionedNodes([...positionedNodes, ...positionedNewNodes])
+        const allPositioned = [...positionedNodes, ...positionedNewNodes]
+        setPositionedNodes(allPositioned)
 
-        // Add new edges
-        const pruned = pruneSemanticEdges(edges, [...positionedNodes, ...positionedNewNodes], 3)
-        setPrunedEdges(pruned)
+        // Keep existing pruned edges and add new ones without re-pruning
+        const debugNewNodeIds = new Set(positionedNewNodes.map(n => n.id))
+        const debugNewEdges = edges.filter(e => debugNewNodeIds.has(e.to || e.target || ''))
 
-        // Animate only the new nodes
-        animateNewNodes(positionedNewNodes, edges)
+        // Merge prunedEdges with new edges (avoiding duplicates)
+        const existingEdgeKeys = new Set(prunedEdges.map(e => `${e.source || e.from}-${e.target || e.to}`))
+        const newEdgesToAdd = debugNewEdges.filter(e => {
+          const key = `${e.source || e.from}-${e.target || e.to}`
+          return !existingEdgeKeys.has(key)
+        })
+
+        setPrunedEdges([...prunedEdges, ...newEdgesToAdd])
+
+        console.log('[GraphViz] Animating new nodes:', positionedNewNodes.length)
+        console.log('[GraphViz] Animating new edges:', debugNewEdges)
+        console.log('[GraphViz] Adding edges to pruned:', newEdgesToAdd)
+
+        // Animate new nodes immediately
+        positionedNewNodes.forEach((node, idx) => {
+          setTimeout(() => {
+            animateNode(node.id, 600)
+          }, idx * 150)
+        })
+
+        // Animate new edges immediately
+        debugNewEdges.forEach((edge, idx) => {
+          const sourceId = edge.source || edge.from
+          const targetId = edge.target || edge.to
+          const edgeKey = `${sourceId}-${targetId}`
+          console.log('[GraphViz] Scheduling edge animation:', edgeKey)
+          setTimeout(() => {
+            console.log('[GraphViz] Animating edge NOW:', edgeKey)
+            animateEdge(edgeKey, 800)
+          }, idx * 150 + 400)
+        })
       } else {
         // Full graph replacement - apply layout to all nodes
         const positioned = applyLayout(nodes, edges, layoutMode)
@@ -340,8 +374,9 @@ export default function GraphVisualization({
         setParticlePulseTrigger(0)
       }
 
-      // Update the ref for next comparison
+      // Update the refs for next comparison
       previousNodeIdsRef.current = currentNodeIds
+      previousLayoutModeRef.current = layoutMode
     }
   }, [nodes, edges, layoutMode])
 
@@ -371,29 +406,6 @@ export default function GraphVisualization({
       }
     }
   }, [positionedNodes, prunedEdges])
-
-  // Staged animation sequence for 4-layer graph
-  const animateNewNodes = (newNodes: GraphNode[], allEdges: EdgeType[]) => {
-    // Animate only the new nodes being added
-    newNodes.forEach((node, idx) => {
-      setTimeout(() => {
-        animateNode(node.id, 600)
-      }, idx * 150) // Stagger slightly
-    })
-
-    // Animate edges connected to new nodes
-    const newNodeIds = new Set(newNodes.map(n => n.id))
-    const newEdges = allEdges.filter(e =>
-      newNodeIds.has(e.to) || newNodeIds.has(e.target || '')
-    )
-
-    newEdges.forEach((edge, idx) => {
-      const edgeKey = `${edge.from || edge.source}-${edge.to || edge.target}`
-      setTimeout(() => {
-        animateEdge(edgeKey, 800)
-      }, idx * 150 + 300) // After nodes start appearing
-    })
-  }
 
   const startAnimationSequence = (nodes: GraphNode[], edges: EdgeType[]) => {
     // Reset animation state
@@ -687,12 +699,18 @@ export default function GraphVisualization({
         <group ref={graphGroupRef}>
           {/* Render edges first (so they appear behind nodes) */}
           {prunedEdges.map((edge, idx) => {
-            const sourceNode = positionedNodes.find(n => n.id === edge.source)
-            const targetNode = positionedNodes.find(n => n.id === edge.target)
+            // Normalize edge properties to ensure source/target are set
+            const sourceId = edge.source || edge.from
+            const targetId = edge.target || edge.to
+
+            if (!sourceId || !targetId) return null
+
+            const sourceNode = positionedNodes.find(n => n.id === sourceId)
+            const targetNode = positionedNodes.find(n => n.id === targetId)
 
             if (!sourceNode?.position || !targetNode?.position) return null
 
-            const edgeKey = `${edge.source}-${edge.target}`
+            const edgeKey = `${sourceId}-${targetId}`
             const isVisible = animState.visibleEdges.has(edgeKey)
             const progress = animState.edgeAnimProgress.get(edgeKey) || 0
 
@@ -706,12 +724,15 @@ export default function GraphVisualization({
             const targetInView = nodesInCameraView.has(edge.target || edge.to)
             const anyNodeInView = sourceInView || targetInView
 
+            // Make underpins edges (source -> concept) white and bright
+            const isUnderpinsEdge = edge.relation === 'underpins'
+
             return (
               <Edge
                 key={`${edge.source}-${edge.target}-${idx}`}
                 start={sourceNode.position as [number, number, number]}
                 end={targetNode.position as [number, number, number]}
-                isHighlighted={isHighlighted}
+                isHighlighted={isHighlighted || isUnderpinsEdge}
                 animationProgress={progress}
                 sourceRadius={getNodeRadius(sourceNode.type)}
                 targetRadius={getNodeRadius(targetNode.type)}
