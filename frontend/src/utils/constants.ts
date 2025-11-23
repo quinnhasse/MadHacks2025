@@ -1,46 +1,48 @@
 /**
  * Shared style constants for the Transparens AI visualization
- * Eliminates magic values and ensures visual consistency
+ * Military-grade aesthetic: Black and white, minimal borders, tactical UI
  */
 
 export const COLORS = {
-  // Cyberpunk palette (matches colorPalettes.ts)
-  CYBER_BLUE: '#22d3ee',
-  CYBER_PURPLE: '#8b5cf6',
-  CYBER_GREEN: '#10b981',
-  CYBER_PINK: '#ec4899',
+  // Military monochrome palette
+  PRIMARY: '#ffffff',
+  SECONDARY: '#cccccc',
+  TERTIARY: '#666666',
 
   // Base colors
   WHITE: '#ffffff',
   BLACK: '#000000',
+  BACKGROUND: '#000000',
+  SURFACE: '#0a0a0a',
 };
 
 export const BUTTON_STYLES = {
-  // Selected state (active)
-  SELECTED_BG: 'rgba(34, 211, 238, 0.2)',
-  SELECTED_BORDER: 'rgba(34, 211, 238, 0.5)',
-  SELECTED_TEXT: '#22d3ee',
+  // Selected state (active) - military inverted style
+  SELECTED_BG: '#ffffff',
+  SELECTED_BORDER: '#ffffff',
+  SELECTED_TEXT: '#000000',
 
   // Unselected state (inactive)
-  UNSELECTED_BG: 'rgba(255, 255, 255, 0.05)',
-  UNSELECTED_BORDER: 'rgba(255, 255, 255, 0.1)',
-  UNSELECTED_TEXT: 'rgba(255, 255, 255, 0.7)',
+  UNSELECTED_BG: 'transparent',
+  UNSELECTED_BORDER: '#333333',
+  UNSELECTED_TEXT: '#ffffff',
 
   // Hover state
-  HOVER_BG: 'rgba(255, 255, 255, 0.1)',
+  HOVER_BG: '#1a1a1a',
+  HOVER_BORDER: '#666666',
 };
 
 export const PANEL_STYLES = {
-  // Controls panel background
-  BG: 'rgba(0, 0, 0, 0.8)',
-  BORDER: 'rgba(255, 255, 255, 0.1)',
-  BLUR: 'blur(10px)',
+  // Controls panel background - minimal, tactical
+  BG: '#000000',
+  BORDER: '#333333',
+  BLUR: 'none',
 
   // Positioning
-  TOP: '24px',
-  LEFT: '24px',
-  BORDER_RADIUS: '12px',
-  PADDING: '16px',
+  TOP: '16px',
+  LEFT: '16px',
+  BORDER_RADIUS: '0px',
+  PADDING: '12px',
 };
 
 /**
@@ -51,7 +53,7 @@ export const getButtonStyle = (isSelected: boolean) => ({
   border: `1px solid ${isSelected ? BUTTON_STYLES.SELECTED_BORDER : BUTTON_STYLES.UNSELECTED_BORDER}`,
   color: isSelected ? BUTTON_STYLES.SELECTED_TEXT : BUTTON_STYLES.UNSELECTED_TEXT,
   padding: '8px 12px',
-  borderRadius: '8px',
+  borderRadius: '0px',
   cursor: 'pointer',
-  transition: 'all 0.2s ease',
+  transition: 'all 0.15s ease',
 });

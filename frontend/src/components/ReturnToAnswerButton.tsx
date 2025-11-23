@@ -9,7 +9,7 @@ export default function ReturnToAnswerButton({ onReturnToAnswer, isDemoMode = fa
   const [showTooltip, setShowTooltip] = useState(false)
 
   return (
-    <div style={{ position: 'fixed', bottom: '24px', left: '24px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+    <div style={{ position: 'fixed', bottom: '16px', left: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
       <button
         className="return-to-answer-button"
         onClick={onReturnToAnswer}
@@ -40,20 +40,19 @@ export default function ReturnToAnswerButton({ onReturnToAnswer, isDemoMode = fa
         >
           <div
             style={{
-              width: '48px',
-              height: '48px',
-              background: 'rgba(255, 193, 7, 0.2)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 193, 7, 0.5)',
-              borderRadius: '6px',
+              width: '40px',
+              height: '40px',
+              background: '#000000',
+              border: '1px solid #ffc107',
+              borderRadius: '0',
               color: '#ffc107',
               cursor: 'help',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
               zIndex: 100,
-              boxShadow: '0 4px 16px rgba(255, 193, 7, 0.2)',
+              boxShadow: 'none',
             }}
           >
             <svg
@@ -77,22 +76,25 @@ export default function ReturnToAnswerButton({ onReturnToAnswer, isDemoMode = fa
             <div
               style={{
                 position: 'absolute',
-                left: '60px',
+                left: '50px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                background: 'rgba(255, 193, 7, 0.95)',
+                background: '#ffc107',
                 color: '#000',
                 padding: '8px 12px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 500,
+                borderRadius: '0',
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
                 whiteSpace: 'nowrap',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                border: '1px solid #ffc107',
+                boxShadow: 'none',
                 zIndex: 1000,
-                backdropFilter: 'blur(10px)',
+                fontFamily: 'monospace',
               }}
             >
-              ⚠️ Demo Mode: Showing sample data (backend unavailable)
+              ⚠ DEMO MODE: BACKEND UNAVAILABLE
             </div>
           )}
         </div>

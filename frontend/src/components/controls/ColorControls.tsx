@@ -38,17 +38,17 @@ export function ColorControls({ mode, onChange }: ColorControlsProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ fontSize: '10px', color: '#666666', marginBottom: '6px', fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', fontFamily: 'monospace' }}>
         Color Mode
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {colorModes.map((colorMode) => {
           const isSelected = mode === colorMode.value;
           const buttonStyle = getButtonStyle(isSelected);
 
           return (
-            <motion.button
+            <button
               key={colorMode.value}
               onClick={() => onChange(colorMode.value)}
               style={{
@@ -56,23 +56,20 @@ export function ColorControls({ mode, onChange }: ColorControlsProps) {
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
+                gap: '10px',
+                padding: '10px',
                 textAlign: 'left',
               }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
             >
               {/* Color preview swatches */}
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '3px' }}>
                 {colorMode.previewColors.map((color, i) => (
                   <div
                     key={i}
                     style={{
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '50%',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      width: '10px',
+                      height: '10px',
+                      border: `1px solid ${isSelected ? '#000000' : '#333333'}`,
                       backgroundColor: color,
                     }}
                   />
@@ -80,22 +77,20 @@ export function ColorControls({ mode, onChange }: ColorControlsProps) {
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: 500 }}>{colorMode.label}</div>
-                <div style={{ fontSize: '12px', opacity: 0.6 }}>{colorMode.description}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{colorMode.label}</div>
+                <div style={{ fontSize: '10px', color: isSelected ? '#000000' : '#666666', marginTop: '2px' }}>{colorMode.description}</div>
               </div>
 
               {isSelected && (
-                <motion.div
-                  layoutId="active-color"
+                <div
                   style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: COLORS.CYBER_BLUE,
+                    width: '6px',
+                    height: '6px',
+                    background: '#000000',
                   }}
                 />
               )}
-            </motion.button>
+            </button>
           );
         })}
       </div>

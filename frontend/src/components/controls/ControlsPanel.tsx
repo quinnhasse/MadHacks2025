@@ -30,14 +30,11 @@ export function ControlsPanel({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -100, scale: 0.9 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
+      initial={{ opacity: 0, x: -100 }}
+      animate={{ opacity: 1, x: 0 }}
       transition={{
-        type: 'spring',
-        stiffness: 200,
-        damping: 20,
-        mass: 0.8,
-        delay: 0.1,
+        duration: 0.2,
+        ease: 'easeOut',
       }}
       style={{
         position: 'absolute',
@@ -46,7 +43,6 @@ export function ControlsPanel({
         zIndex: 10,
         minWidth: '280px',
         background: PANEL_STYLES.BG,
-        backdropFilter: PANEL_STYLES.BLUR,
         border: `1px solid ${PANEL_STYLES.BORDER}`,
         borderRadius: PANEL_STYLES.BORDER_RADIUS,
         padding: PANEL_STYLES.PADDING,
@@ -55,11 +51,12 @@ export function ControlsPanel({
       {/* Tab Navigation */}
       <div style={{
         display: 'flex',
-        gap: '4px',
-        marginBottom: '16px',
-        padding: '4px',
-        borderRadius: '8px',
-        background: 'rgba(255, 255, 255, 0.05)'
+        gap: '2px',
+        marginBottom: '12px',
+        padding: '0',
+        borderRadius: '0',
+        background: 'transparent',
+        borderBottom: `1px solid ${PANEL_STYLES.BORDER}`
       }}>
         {tabs.map((tab) => (
           <button
@@ -70,33 +67,24 @@ export function ControlsPanel({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              transition: 'all 0.2s ease',
+              gap: '6px',
+              padding: '10px 12px',
+              borderRadius: '0',
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase' as const,
+              transition: 'all 0.15s ease',
               position: 'relative',
               border: 'none',
-              background: 'transparent',
-              color: activeTab === tab.id ? 'white' : 'rgba(255, 255, 255, 0.5)',
+              borderBottom: activeTab === tab.id ? '2px solid #ffffff' : '2px solid transparent',
+              background: activeTab === tab.id ? '#1a1a1a' : 'transparent',
+              color: activeTab === tab.id ? '#ffffff' : '#666666',
               cursor: 'pointer',
             }}
           >
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="active-tab-bg"
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  borderRadius: '6px',
-                  background: BUTTON_STYLES.SELECTED_BG,
-                  border: `1px solid ${BUTTON_STYLES.SELECTED_BORDER}`,
-                }}
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-              />
-            )}
-            <span style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '16px', height: '16px', display: 'inline-flex' }}>{tab.icon}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '14px', height: '14px', display: 'inline-flex' }}>{tab.icon}</span>
               <span style={{ display: window.innerWidth >= 640 ? 'inline' : 'none' }}>{tab.label}</span>
             </span>
           </button>

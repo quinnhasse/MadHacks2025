@@ -62,7 +62,7 @@ export default function QuestionInput({
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask a question..."
+          placeholder="ENTER QUERY..."
           className="question-input"
           disabled={isLoading}
         />
@@ -81,11 +81,12 @@ export default function QuestionInput({
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              strokeLinecap="square"
+              strokeLinejoin="miter"
             >
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              {/* Arrow right icon - military/tactical */}
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           )}
         </button>

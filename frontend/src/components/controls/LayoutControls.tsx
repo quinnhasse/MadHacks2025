@@ -37,17 +37,17 @@ export function LayoutControls({ mode, onChange }: LayoutControlsProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ fontSize: '10px', color: '#666666', marginBottom: '6px', fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', fontFamily: 'monospace' }}>
         Layout Mode
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {layouts.map((layout) => {
           const isSelected = mode === layout.value;
           const buttonStyle = getButtonStyle(isSelected);
 
           return (
-            <motion.button
+            <button
               key={layout.value}
               onClick={() => onChange(layout.value)}
               style={{
@@ -55,32 +55,28 @@ export function LayoutControls({ mode, onChange }: LayoutControlsProps) {
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
+                gap: '10px',
+                padding: '10px',
                 textAlign: 'left',
               }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
             >
-              <div style={{ color: isSelected ? COLORS.CYBER_BLUE : 'rgba(255, 255, 255, 0.5)' }}>
+              <div style={{ color: isSelected ? '#000000' : '#ffffff' }}>
                 {layout.icon}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: 500 }}>{layout.label}</div>
-                <div style={{ fontSize: '12px', opacity: 0.6 }}>{layout.description}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{layout.label}</div>
+                <div style={{ fontSize: '10px', color: isSelected ? '#000000' : '#666666', marginTop: '2px' }}>{layout.description}</div>
               </div>
               {isSelected && (
-                <motion.div
-                  layoutId="active-layout"
+                <div
                   style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: COLORS.CYBER_BLUE,
+                    width: '6px',
+                    height: '6px',
+                    background: '#000000',
                   }}
                 />
               )}
-            </motion.button>
+            </button>
           );
         })}
       </div>
