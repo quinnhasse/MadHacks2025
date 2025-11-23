@@ -15,6 +15,11 @@ import {
 import { secondarySourceAgent, SecondarySourceNode } from './secondarySourceAgent';
 import { semanticGraphBuilder, EmbeddableNode } from './semanticGraphBuilder';
 import { getDensityConfig, DEFAULT_DENSITY, DensityLevel, logDensityConfig } from '../config/density';
+import {
+  generateQuestionLabel,
+  generateSourceLabel,
+  generateAnswerBlockLabels
+} from '../utils/labelGenerator';
 
 /**
  * Custom error for graph building failures
@@ -79,6 +84,7 @@ export async function buildEvidenceGraph(
     id: 'answer',
     type: 'answer_root',
     label: truncateText(answer.text, 100),
+    shortLabel: 'Answer',
     metadata: {
       fullText: answer.text,
       layer: 0
@@ -90,6 +96,7 @@ export async function buildEvidenceGraph(
     id: 'q',
     type: 'question',
     label: truncateText(question, 80),
+    shortLabel: generateQuestionLabel(question),
     metadata: {
       fullText: question,
       layer: 0
@@ -104,12 +111,27 @@ export async function buildEvidenceGraph(
     weight: 1.0
   });
 
-  // 4. Create answer block nodes (Layer 1)
-  for (const block of answer.blocks) {
+  // 4. Generate short labels for all answer blocks (batched for efficiency)
+  console.log('[EvidenceGraph] Step 1: Generating short labels for answer blocks...');
+  let blockShortLabels: string[];
+  try {
+    blockShortLabels = await generateAnswerBlockLabels(answer.blocks.map(b => b.text));
+    console.log(`[EvidenceGraph] Generated ${blockShortLabels.length} block labels`);
+  } catch (error) {
+    console.warn(`[EvidenceGraph] Failed to generate block labels, using fallbacks: ${error}`);
+    blockShortLabels = answer.blocks.map((_, idx) => `Block ${idx + 1}`);
+  }
+
+  // 5. Create answer block nodes (Layer 1)
+  for (let i = 0; i < answer.blocks.length; i++) {
+    const block = answer.blocks[i];
+    const shortLabel = blockShortLabels[i] || `Block ${i + 1}`;
+
     nodes.push({
       id: block.id,
       type: 'answer_block',
       label: truncateText(block.text, 100),
+      shortLabel: shortLabel,
       metadata: {
         fullText: block.text,
         blockType: block.type,
@@ -152,7 +174,7 @@ export async function buildEvidenceGraph(
     }
   }
 
-  // 5. Create direct source nodes (Layer 2)
+  // 6. Create direct source nodes (Layer 2)
   // Calculate citation counts and determine branch affiliations
   const citationCounts = new Map<string, number>();
   const sourceToBranches = new Map<string, Set<string>>();
@@ -168,6 +190,7 @@ export async function buildEvidenceGraph(
     }
   }
 
+  console.log('[EvidenceGraph] Step 2: Creating source nodes with brand labels...');
   for (const source of sources) {
     const branches = sourceToBranches.get(source.id);
     const primaryBranch = branches && branches.size > 0
@@ -178,6 +201,7 @@ export async function buildEvidenceGraph(
       id: source.id,
       type: 'direct_source',
       label: truncateText(source.title, 60),
+      shortLabel: generateSourceLabel(source.title, source.url),
       metadata: {
         fullText: source.snippet,
         url: source.url,
@@ -191,7 +215,7 @@ export async function buildEvidenceGraph(
     });
   }
 
-  // 6. Add Layer 3: Secondary sources (supporting concepts)
+  // 7. Add Layer 3: Secondary sources (supporting concepts)
   let secondaryNodes: SecondarySourceNode[] = [];
   try {
     console.log('[EvidenceGraph] Step 3: Extracting secondary concepts (Layer 3)...');
@@ -199,10 +223,12 @@ export async function buildEvidenceGraph(
 
     for (const secNode of secondaryNodes) {
       // Add secondary source node
+      // SecondarySourceAgent now returns short_label field
       nodes.push({
         id: secNode.id,
         type: 'secondary_source',
         label: secNode.title,
+        shortLabel: secNode.short_label || secNode.title, // Use short_label from LLM
         metadata: {
           fullText: secNode.text,
           layer: 3,

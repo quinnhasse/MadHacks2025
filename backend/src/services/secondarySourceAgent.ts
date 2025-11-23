@@ -35,6 +35,9 @@ export interface SecondarySourceNode {
   /** Concept explanation (2-4 sentences) */
   text: string;
 
+  /** 1-3 word tag for 3D visualization */
+  short_label: string;
+
   /** Importance score (0-1), optional */
   importance?: number;
 }
@@ -99,10 +102,19 @@ Return a JSON object with this exact structure:
     {
       "title": "Short concept name (1-5 words)",
       "text": "2-4 sentence explanation of this concept and why it matters in the context of the question",
+      "short_label": "1-3 word tag",
       "importance": 0.85
     }
   ]
 }
+
+SHORT LABEL REQUIREMENTS:
+- Exactly 1-3 words in plain language
+- No punctuation (except hyphens)
+- No quotes
+- Examples: "Ethical risks", "AI regulation", "Data privacy", "Model bias"
+- Should be understandable by a non-expert
+- Use title case or normal case
 
 IMPORTANCE SCORING:
 - 0.9-1.0: Critical foundational concept
@@ -137,7 +149,7 @@ Extract 2-4 key underlying concepts from this source that help answer the questi
 /**
  * Validates LLM response structure
  */
-function validateConceptsResponse(response: unknown): { title: string; text: string; importance?: number }[] {
+function validateConceptsResponse(response: unknown): { title: string; text: string; short_label: string; importance?: number }[] {
   if (!response || typeof response !== 'object') {
     throw new Error('Invalid response: not an object');
   }
@@ -148,7 +160,7 @@ function validateConceptsResponse(response: unknown): { title: string; text: str
     throw new Error('Invalid response: concepts is not an array');
   }
 
-  const concepts: { title: string; text: string; importance?: number }[] = [];
+  const concepts: { title: string; text: string; short_label: string; importance?: number }[] = [];
 
   for (let i = 0; i < payload.concepts.length; i++) {
     const concept = payload.concepts[i];
@@ -165,11 +177,14 @@ function validateConceptsResponse(response: unknown): { title: string; text: str
       continue;
     }
 
+    // Extract short_label, fallback to title if missing
+    const short_label = typeof c.short_label === 'string' ? c.short_label : c.title;
     const importance = typeof c.importance === 'number' ? c.importance : undefined;
 
     concepts.push({
       title: c.title,
       text: c.text,
+      short_label,
       importance
     });
   }
@@ -313,6 +328,7 @@ export async function secondarySourceAgent(
             relatedBlockIds: relatedBlocks,
             title: concept.title,
             text: concept.text,
+            short_label: concept.short_label,
             importance: concept.importance
           });
         }

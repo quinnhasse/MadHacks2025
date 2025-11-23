@@ -61,6 +61,9 @@ export interface EvidenceNode {
   /** Display label (truncated for readability) */
   label: string;
 
+  /** Short label for 3D visualization (1-3 words max) */
+  shortLabel?: string;
+
   /** Optional metadata for future enhancement */
   metadata?: {
     /** Full untruncated text */
