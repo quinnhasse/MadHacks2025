@@ -2,7 +2,8 @@ import { useState } from 'react'
 import QuestionInput from './components/QuestionInput'
 import GraphVisualization from './components/GraphVisualization'
 import NodeDetailPanel from './components/NodeDetailPanel'
-import { Node, Edge, ReasoningResponse } from './types'
+import { ControlsPanel } from './components/controls/ControlsPanel'
+import { Node, Edge, ReasoningResponse, LayoutMode, ColorMode } from './types'
 import { transformResponseToGraph } from './utils/graphTransform'
 import { askQuestion, ApiError } from './services/api'
 import './App.css'
@@ -16,6 +17,8 @@ function App() {
   const [hasAskedQuestion, setHasAskedQuestion] = useState(false)
   const [isPromptDimmed, setIsPromptDimmed] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('cluster')
+  const [colorMode, setColorMode] = useState<ColorMode>('byLevel')
 
   const handleQuestionSubmit = async (question: string) => {
     setHasAskedQuestion(true)
@@ -108,8 +111,17 @@ function App() {
         nodes={nodes}
         edges={edges}
         highlightedNodes={highlightedNodes}
+        layoutMode={layoutMode}
+        colorMode={colorMode}
         onNodeClick={setSelectedNode}
         onInteraction={() => setIsPromptDimmed(true)}
+      />
+
+      <ControlsPanel
+        layoutMode={layoutMode}
+        onLayoutModeChange={setLayoutMode}
+        colorMode={colorMode}
+        onColorModeChange={setColorMode}
       />
 
       <QuestionInput
