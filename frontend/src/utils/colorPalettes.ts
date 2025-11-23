@@ -13,6 +13,17 @@ export interface ColorPalette {
 }
 
 export const COLOR_PALETTES: Record<string, ColorPalette> = {
+  tactical: {
+    tier1: '#ffa726', // Deep orange/alert amber - closest to answer
+    tier2: '#26a69a', // Tactical teal/sonar blue - mid-tier
+    tier3: '#66bb6a', // Night vision green - further out
+    tier4: '#ef5350', // Target red/warning crimson - furthest
+    principle: '#ff9800', // Command orange for principles
+    fact: '#26a69a',      // Tactical teal for facts
+    example: '#66bb6a',   // Night vision green for examples
+    analogy: '#ab47bc',   // Deep purple/intel violet for analogies
+    default: '#cccccc',
+  },
   cyberpunk: {
     tier1: '#22d3ee', // Cyan - closest to answer
     tier2: '#8b5cf6', // Purple - mid-tier
@@ -114,4 +125,4 @@ export class ColorEngine {
   }
 }
 
-export const colorEngine = new ColorEngine('cyberpunk');
+export const colorEngine = new ColorEngine('tactical');

@@ -9,7 +9,7 @@ interface ColorControlsProps {
 }
 
 export function ColorControls({ mode, onChange }: ColorControlsProps) {
-  const palette = COLOR_PALETTES.cyberpunk;
+  const palette = COLOR_PALETTES.tactical;
 
   const colorModes: Array<{
     value: ColorMode;
@@ -19,20 +19,20 @@ export function ColorControls({ mode, onChange }: ColorControlsProps) {
   }> = [
     {
       value: 'white',
-      label: 'White',
-      description: 'Clean monochrome view',
-      previewColors: ['#ffffff', '#b0b0b0', '#808080'],
+      label: 'Monochrome',
+      description: 'Grayscale tactical view',
+      previewColors: ['#cccccc', '#999999', '#666666'],
     },
     {
       value: 'byLevel',
-      label: 'By Level',
-      description: 'Color by graph layer depth',
+      label: 'By Tier',
+      description: 'Tactical layer depth coding',
       previewColors: [palette.tier1, palette.tier2, palette.tier3],
     },
     {
       value: 'byRole',
-      label: 'By Role',
-      description: 'Color by node type',
+      label: 'By Type',
+      description: 'Classification-based coding',
       previewColors: [palette.principle, palette.fact, palette.example],
     },
   ];
