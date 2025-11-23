@@ -1,13 +1,16 @@
 import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { NODE_TYPES, NODE_STATES, COLORS, CLUSTER_TIERS } from '../utils/constants';
 
 // Node component
 function Node({ node, onClick }) {
+  const groupRef = useRef();
   const meshRef = useRef();
+  const labelRef = useRef();
   const [hovered, setHovered] = useState(false);
+  const { camera } = useThree();
 
   // Get color based on node type and state
   const getNodeColor = () => {
@@ -39,7 +42,7 @@ function Node({ node, onClick }) {
   const color = getNodeColor();
   const size = getNodeSize();
 
-  // Animate nodes
+  // Animate nodes and update label position relative to camera
   useFrame((state) => {
     if (meshRef.current) {
       // Pulse animation for thinking state
@@ -48,24 +51,45 @@ function Node({ node, onClick }) {
         meshRef.current.scale.setScalar(scale);
       }
 
-      // Gentle floating animation
-      if (node.type !== NODE_TYPES.ANSWER_CORE) {
-        const float = Math.sin(state.clock.elapsedTime + node.position.x) * 0.05;
-        meshRef.current.position.y = node.position.y + float;
-      }
-
       // Hover effect
       if (hovered && node.state !== NODE_STATES.THINKING) {
         meshRef.current.scale.setScalar(1.2);
       }
     }
+
+    // Gentle floating animation on the whole node group
+    if (groupRef.current && node.type !== NODE_TYPES.ANSWER_CORE) {
+      const float = Math.sin(state.clock.elapsedTime + node.position.x) * 0.05;
+      groupRef.current.position.y = node.position.y + float;
+    }
+
+    // Keep label wrapped around the node, facing the camera
+    if (groupRef.current && labelRef.current && camera) {
+      const nodePosition = groupRef.current.position.clone();
+      const directionToCamera = camera.position.clone().sub(nodePosition);
+
+      if (directionToCamera.lengthSq() > 0.0001) {
+        directionToCamera.normalize();
+
+        // Place the label slightly in front of the node toward the camera
+        const distanceFromNode = size + 0.8;
+        const offset = directionToCamera.multiplyScalar(distanceFromNode);
+
+        // Small upward bias so it doesn't sit dead‑center
+        offset.y += 0.2;
+
+        labelRef.current.position.set(offset.x, offset.y, offset.z);
+      }
+    }
   });
 
   return (
-    <group>
+    <group
+      ref={groupRef}
+      position={[node.position.x, node.position.y, node.position.z]}
+    >
       <mesh
         ref={meshRef}
-        position={[node.position.x, node.position.y, node.position.z]}
         onClick={() => onClick && onClick(node)}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
@@ -80,7 +104,7 @@ function Node({ node, onClick }) {
       </mesh>
 
       {/* Outer glow */}
-      <mesh position={[node.position.x, node.position.y, node.position.z]}>
+      <mesh>
         <sphereGeometry args={[size * 1.3, 32, 32]} />
         <meshBasicMaterial
           color={color}
@@ -92,7 +116,8 @@ function Node({ node, onClick }) {
 
       {/* Label */}
       <Html
-        position={[node.position.x, node.position.y + size + 0.5, node.position.z]}
+        ref={labelRef}
+        position={[0, size + 0.5, 0]}
         center
         style={{
           pointerEvents: 'none',
