@@ -204,6 +204,50 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 />
               ))}
             </div>
+
+            {/* Control Tips Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              style={{
+                marginTop: '32px',
+                paddingTop: '24px',
+                borderTop: '1px solid #222',
+                width: '100%'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 400,
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase',
+                  color: '#666',
+                  marginBottom: '12px'
+                }}
+              >
+                Graph Controls
+              </div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: '#999',
+                  lineHeight: '1.8',
+                  fontWeight: 300
+                }}
+              >
+                <div style={{ marginBottom: '6px' }}>
+                  <span style={{ color: '#fff', fontWeight: 400 }}>Zoom:</span> Pinch or scroll
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <span style={{ color: '#fff', fontWeight: 400 }}>Pan:</span> Click trackpad with one finger, move with another
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  <span style={{ color: '#fff', fontWeight: 400 }}>Rotate:</span> Hold Shift while panning
+                </div>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       )}

@@ -14,25 +14,25 @@ export function LayoutControls({ mode, onChange }: LayoutControlsProps) {
       value: 'cluster',
       label: 'Cluster',
       icon: <Grid3x3 style={{ width: '16px', height: '16px' }} />,
-      description: 'Hierarchical grouped structure',
+      description: 'Groups connected items together',
     },
     {
       value: 'circular',
       label: 'Circular',
       icon: <Circle style={{ width: '16px', height: '16px' }} />,
-      description: 'Flat concentric rings',
+      description: 'Arranges items in circles',
     },
     {
       value: 'globe',
       label: 'Globe',
       icon: <Globe style={{ width: '16px', height: '16px' }} />,
-      description: 'Spherical 3D surface',
+      description: 'Wraps items around a sphere',
     },
     {
       value: 'flat',
       label: 'Baseline',
       icon: <LayoutGrid style={{ width: '16px', height: '16px' }} />,
-      description: 'Simple baseline layout',
+      description: 'Spreads items out evenly',
     },
   ];
 
