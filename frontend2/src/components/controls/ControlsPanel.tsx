@@ -30,8 +30,15 @@ export function ControlsPanel({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, x: -100, scale: 0.9 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{
+        type: 'spring',
+        stiffness: 200,
+        damping: 20,
+        mass: 0.8,
+        delay: 0.1,
+      }}
       style={{
         position: 'absolute',
         top: PANEL_STYLES.TOP,

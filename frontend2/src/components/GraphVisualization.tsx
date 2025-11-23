@@ -21,6 +21,7 @@ interface GraphVisualizationProps {
   colorMode?: ColorMode
   onNodeClick: (node: GraphNode) => void
   onInteraction: () => void
+  isDemoMode?: boolean
 }
 
 interface AnimationState {
@@ -233,6 +234,7 @@ export default function GraphVisualization({
   colorMode = 'white',
   onNodeClick,
   onInteraction,
+  isDemoMode = false,
 }: GraphVisualizationProps) {
   const [positionedNodes, setPositionedNodes] = useState<GraphNode[]>([])
   const [prunedEdges, setPrunedEdges] = useState<EdgeType[]>([])
@@ -666,7 +668,7 @@ export default function GraphVisualization({
           })}
         </group>
       </Canvas>
-      <ReturnToAnswerButton onReturnToAnswer={handleReturnToAnswer} />
+      <ReturnToAnswerButton onReturnToAnswer={handleReturnToAnswer} isDemoMode={isDemoMode} />
     </div>
   )
 }

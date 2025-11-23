@@ -20,6 +20,7 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('cluster')
   const [colorMode, setColorMode] = useState<ColorMode>('byLevel')
+  const [showControls, setShowControls] = useState(false)
 
   // Handle ESC key to collapse sidebar
   useEffect(() => {
@@ -44,6 +45,7 @@ function App() {
     setEdges([])
     setHighlightedNodes(new Set())
     setSelectedNode(null) // Clear previous selection
+    setShowControls(false) // Hide controls during loading
 
     try {
       // Call backend API using the API client
@@ -73,6 +75,11 @@ function App() {
         const allNodeIds = new Set(graphData.nodes.map(n => n.id))
         setHighlightedNodes(allNodeIds)
       }, 500)
+
+      // Show controls after nodes start animating
+      setTimeout(() => {
+        setShowControls(true)
+      }, 800)
     } catch (error) {
       // Backend is unavailable or failed - fall back to demo data
       console.warn('⚠️ Backend unavailable, loading demo data...')
@@ -118,6 +125,11 @@ function App() {
           const allNodeIds = new Set(graphData.nodes.map(n => n.id))
           setHighlightedNodes(allNodeIds)
         }, 500)
+
+        // Show controls after nodes start animating (fallback/demo mode)
+        setTimeout(() => {
+          setShowControls(true)
+        }, 800)
       } catch (fallbackError) {
         console.error('❌ Failed to load demo data:', fallbackError)
         console.error('Make sure /public/examples/example-response.json exists')
@@ -128,25 +140,6 @@ function App() {
 
   return (
     <div className="app">
-      {isDemoMode && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          background: 'rgba(255, 193, 7, 0.9)',
-          color: '#000',
-          padding: '8px 16px',
-          textAlign: 'center',
-          fontSize: '14px',
-          fontWeight: 500,
-          zIndex: 10000,
-          backdropFilter: 'blur(10px)',
-        }}>
-          ⚠️ Demo Mode: Showing sample data (backend unavailable)
-        </div>
-      )}
-
       <GraphVisualization
         nodes={nodes}
         edges={edges}
@@ -155,14 +148,17 @@ function App() {
         colorMode={colorMode}
         onNodeClick={handleNodeClick}
         onInteraction={() => setIsPromptDimmed(true)}
+        isDemoMode={isDemoMode}
       />
 
-      <ControlsPanel
-        layoutMode={layoutMode}
-        onLayoutModeChange={setLayoutMode}
-        colorMode={colorMode}
-        onColorModeChange={setColorMode}
-      />
+      {showControls && (
+        <ControlsPanel
+          layoutMode={layoutMode}
+          onLayoutModeChange={setLayoutMode}
+          colorMode={colorMode}
+          onColorModeChange={setColorMode}
+        />
+      )}
 
       <QuestionInput
         onSubmit={handleQuestionSubmit}
