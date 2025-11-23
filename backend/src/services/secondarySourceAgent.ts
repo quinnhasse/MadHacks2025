@@ -10,7 +10,9 @@
 import { Source, AnswerPayload } from '../types/shared';
 import { config } from '../config/env';
 import { getDensityConfig, DEFAULT_DENSITY, DensityLevel } from '../config/density';
-import OpenAI from 'openai';
+import { Exa } from 'exa-js';
+
+const exaClient = config.exaApiKey ? new Exa(config.exaApiKey) : null;
 
 // ============================================================================
 // TYPES
@@ -42,109 +44,38 @@ export interface SecondarySourceNode {
   importance?: number;
 }
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const LLM_CONFIG = {
-  MODEL: config.llmModel,
-  MAX_TOKENS: 1000,
-  TEMPERATURE: 0.2,
-  MAX_SOURCE_CHARS: 800,
-  RESPONSE_FORMAT: { type: "json_object" as const },
-} as const;
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Truncates source content for LLM prompt
- */
-function truncateSourceContent(source: Source, maxChars: number): string {
-  const content = source.full_text || source.snippet || '';
-  if (content.length <= maxChars) {
-    return content;
-  }
-
-  const truncated = content.substring(0, maxChars);
-  const lastPeriod = truncated.lastIndexOf('.');
-  if (lastPeriod > maxChars * 0.7) {
-    return truncated.substring(0, lastPeriod + 1) + ' [...]';
-  }
-
-  return truncated + '...';
-}
-
-/**
- * Builds the system message for concept extraction
- */
-function buildSystemMessage(): string {
-  return `You are an expert at analyzing sources and identifying core underlying concepts.
-
-Your task is to extract 2-4 KEY SUPPORTING CONCEPTS from a given source that are relevant to the question.
-
-WHAT TO EXTRACT:
-- Core ideas or principles that the source relies on
-- Key background concepts needed to understand the source
-- Important related topics or domain knowledge
-- Foundational facts or definitions mentioned in the source
-
-WHAT NOT TO EXTRACT:
-- Simple restatements of the source text
-- Trivial details
-- Concepts not related to the question
-
-OUTPUT FORMAT:
-Return a JSON object with this exact structure:
-{
-  "concepts": [
-    {
-      "title": "Short concept name (1-5 words)",
-      "text": "2-4 sentence explanation of this concept and why it matters in the context of the question",
-      "short_label": "1-3 word tag",
-      "importance": 0.85
+const BATCH_SECONDARY_SCHEMA = {
+  type: 'object',
+  required: ['sources'],
+  properties: {
+    sources: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['source_id', 'concepts'],
+        properties: {
+          source_id: { type: 'string' },
+          concepts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['title', 'text', 'short_label'],
+              properties: {
+                title: { type: 'string' },
+                text: { type: 'string' },
+                short_label: { type: 'string' },
+                importance: { type: 'number' }
+              }
+            }
+          }
+        }
+      }
     }
-  ]
-}
+  }
+};
 
-SHORT LABEL REQUIREMENTS:
-- Exactly 1-3 words in plain language
-- No punctuation (except hyphens)
-- No quotes
-- Examples: "Ethical risks", "AI regulation", "Data privacy", "Model bias"
-- Should be understandable by a non-expert
-- Use title case or normal case
-
-IMPORTANCE SCORING:
-- 0.9-1.0: Critical foundational concept
-- 0.7-0.9: Important supporting concept
-- 0.5-0.7: Relevant but less central concept
-
-Return 2-4 concepts. Focus on quality over quantity, but capture the key ideas that underpin this source.`;
-}
-
-/**
- * Builds the user message for a specific source
- */
-function buildUserMessage(
-  question: string,
-  source: Source,
-  relatedBlocks: string[]
-): string {
-  const truncatedContent = truncateSourceContent(source, LLM_CONFIG.MAX_SOURCE_CHARS);
-
-  return `Question: ${question}
-
-Source Title: ${source.title}
-Source URL: ${source.url}
-Source Content:
-${truncatedContent}
-
-This source is cited by ${relatedBlocks.length} answer block(s) in the response.
-
-Extract 2-4 key underlying concepts from this source that help answer the question.`;
-}
+const exaSystemPrompt = `You are an expert assistant that organizes source-based reasoning.
+Extract 2-4 supporting concepts per source with short titles, explanatory text, and importance scores.`;
 
 /**
  * Validates LLM response structure
@@ -177,7 +108,6 @@ function validateConceptsResponse(response: unknown): { title: string; text: str
       continue;
     }
 
-    // Extract short_label, fallback to title if missing
     const short_label = typeof c.short_label === 'string' ? c.short_label : c.title;
     const importance = typeof c.importance === 'number' ? c.importance : undefined;
 
@@ -206,7 +136,7 @@ interface BatchSourceConcept {
 }
 
 /**
- * Validates the batched secondary concept response from the LLM
+ * Validates the batched secondary concept response from Exa
  */
 function validateBatchConceptsResponse(response: unknown): BatchSourceConcept[] {
   if (!response || typeof response !== 'object') {
@@ -314,43 +244,31 @@ ${sourceDescriptions.join('\n')}
 }
 
 /**
- * Extracts secondary concepts via a single batched LLM call
+ * Extracts secondary concepts via a single call to Exa's /answer endpoint
  */
 async function extractSecondaryConceptsBatch(
   question: string,
   sources: { source: Source; citationCount: number; relatedBlocks: string[] }[],
   conceptsPerSource: number
 ): Promise<BatchSourceConcept[]> {
+  if (!exaClient) {
+    throw new Error('EXA_API_KEY not configured');
+  }
+
   if (sources.length === 0) {
     return [];
   }
 
-  const client = new OpenAI({ apiKey: config.llmApiKey });
   const prompt = buildBatchSecondaryPrompt(question, sources, conceptsPerSource);
 
-  const completion = await client.chat.completions.create({
-    model: LLM_CONFIG.MODEL,
-    messages: [
-      { role: 'system', content: buildSystemMessage() },
-      { role: 'user', content: prompt },
-    ],
-    temperature: LLM_CONFIG.TEMPERATURE,
-    max_tokens: 1200,
-    response_format: { type: "json_object" as const },
+  const response = await exaClient.answer(prompt, {
+    systemPrompt: exaSystemPrompt,
+    outputSchema: BATCH_SECONDARY_SCHEMA,
+    text: false
   });
 
-  const content = completion.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error('LLM returned empty batch secondary response');
-  }
-
-  const parsed = JSON.parse(content);
-  return validateBatchConceptsResponse(parsed);
+  return validateBatchConceptsResponse(response.answer);
 }
-
-// ============================================================================
-// MAIN FUNCTION
-// ============================================================================
 
 /**
  * Extracts secondary concepts from direct sources
@@ -387,9 +305,9 @@ export async function secondarySourceAgent(
 
   console.log(`[SecondarySourceAgent] Density: ${densityLevel} (top ${topSourcesToProcess} sources, ${conceptsPerSource} concepts/source, max ${maxTotalConcepts} total)`);
 
-  // Check API key
-  if (!config.llmApiKey) {
-    console.warn('[SecondarySourceAgent] LLM_API_KEY not configured, skipping secondary concepts');
+  // Check Exa API key
+  if (!config.exaApiKey) {
+    console.warn('[SecondarySourceAgent] EXA_API_KEY not configured, skipping secondary concepts');
     return [];
   }
 

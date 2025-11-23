@@ -89,6 +89,25 @@ function truncateSourceContent(source: Source, maxChars: number): string {
   return truncated + '...';
 }
 
+export function cleanMarkdownLinks(content: string): string {
+  const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+
+  return content.replace(markdownLinkRegex, (_, text, url) => {
+    try {
+      const u = new URL(url);
+
+      // Remove literal `www.` subdomain
+      const hostname = u.hostname.replace(/^www\./i, "");
+
+      const base = `${hostname}/...`;
+      return `[${text}](${base})`;
+    } catch {
+      // If URL parsing fails, keep original
+      return `[${text}](${url})`;
+    }
+  });
+}
+
 /**
  * Formats sources for inclusion in LLM prompt
  * Creates a structured, numbered list with IDs, titles, URLs, and content
@@ -109,8 +128,7 @@ function formatSourcesForPrompt(sources: Source[]): string {
 
     // Format source with clear structure
     const sourceBlock = `[${source.id}] Title: ${source.title}
-URL: ${source.url}
-Content: ${content}
+Content: ${cleanMarkdownLinks(content)}
 ---`;
 
     // Check if adding this source would exceed total budget
@@ -414,6 +432,7 @@ export async function answerAgent(
     { role: 'system', content: systemMessage },
     { role: 'user', content: userMessage },
   ];
+  console.log(`\n\n${JSON.stringify(promptMessages)}\n\n`);
   logPromptUsage('Prompt payload', promptMessages, formattedSources.length, sources.length);
 
   // Retry loop
@@ -437,6 +456,7 @@ export async function answerAgent(
 
       // Extract response content
       const content = completion.choices[0]?.message?.content;
+      console.log(`\n\n${content}\n\n`);
 
       if (!content) {
         throw new AnswerAgentError(
