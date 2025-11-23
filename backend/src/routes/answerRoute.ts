@@ -1,16 +1,67 @@
 /**
  * Answer Route Handler
  * Exposes POST /api/answer endpoint for answering questions with evidence
+ *
+ * Phase 5 Enhancements:
+ * - Comprehensive error handling with graceful degradation
+ * - Detailed logging with timestamps and latency tracking
+ * - Never crashes the server - always returns meaningful responses
  */
 
 import { Request, Response, Express } from 'express';
 import { researchAgent } from '../services/researchAgent';
 import { answerAgent } from '../services/answerAgent';
 import { buildEvidenceGraph } from '../services/evidenceGraph';
-import { AnswerResponse } from '../types/shared';
+import { AnswerResponse, AnswerPayload, Source, EvidenceGraph } from '../types/shared';
 
 interface AnswerRequest {
   question: string;
+}
+
+/**
+ * Creates a fallback answer when the LLM fails
+ */
+function createFallbackAnswer(errorMessage: string): AnswerPayload {
+  return {
+    text: `Sorry, I could not generate an answer right now. ${errorMessage}`,
+    blocks: [
+      {
+        id: 'ans-error-1',
+        type: 'paragraph',
+        text: `Sorry, I could not generate an answer right now. ${errorMessage}`,
+        source_ids: []
+      }
+    ]
+  };
+}
+
+/**
+ * Creates a minimal evidence graph when graph building fails
+ */
+function createMinimalGraph(question: string): EvidenceGraph {
+  return {
+    nodes: [
+      {
+        id: 'q',
+        type: 'question',
+        label: question.slice(0, 80),
+        metadata: { fullText: question, layer: 0 }
+      }
+    ],
+    edges: [],
+    metadata: {
+      sourceCount: 0,
+      blockCount: 0,
+      createdAt: new Date()
+    }
+  };
+}
+
+/**
+ * Formats timestamp for consistent logging
+ */
+function getTimestamp(): string {
+  return new Date().toISOString();
 }
 
 /**
@@ -25,15 +76,33 @@ interface AnswerRequest {
  * - question: echoed back
  * - answer: structured answer with blocks
  * - sources: array of sources used
- * - evidence_graph: graph connecting question -> blocks -> sources
+ * - evidence_graph: graph connecting question -> answer_root -> blocks -> sources
  * - meta: timing and model information
+ *
+ * Error Handling:
+ * - Research failures: Continue with empty sources and note in meta
+ * - Answer failures: Return fallback answer with sources (if available)
+ * - Graph failures: Return minimal graph with question node only
+ * - Never crashes - always returns 200 with partial data or 500 with error details
  */
 async function handleAnswer(req: Request, res: Response): Promise<void> {
+  const requestStart = Date.now();
+  let sources: Source[] = [];
+  let answer: AnswerPayload | null = null;
+  let evidenceGraph: EvidenceGraph | null = null;
+  let retrievalLatencyMs = 0;
+  let answerLatencyMs = 0;
+  let graphLatencyMs = 0;
+  const errors: string[] = [];
+
   try {
     const { question } = req.body as AnswerRequest;
 
-    // Validation
+    // ========================================================================
+    // VALIDATION
+    // ========================================================================
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
+      console.log(`[${getTimestamp()}] [API] Invalid request: Empty or non-string question`);
       res.status(400).json({
         error: 'Bad Request',
         message: 'Question must be a non-empty string'
@@ -41,44 +110,171 @@ async function handleAnswer(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    console.log(`\n[API] Received question: "${question}"`);
+    console.log(`[${getTimestamp()}] [API] ========================================`);
+    console.log(`[${getTimestamp()}] [API] Request received: POST /api/answer`);
+    console.log(`[${getTimestamp()}] [API] Question: "${question}"`);
+    console.log(`[${getTimestamp()}] [API] ========================================`);
 
-    // Step 1: Research - Get sources using Exa
-    const retrievalStart = Date.now();
-    const sources = await researchAgent(question);
-    const retrievalLatencyMs = Date.now() - retrievalStart;
-    console.log(`[API] Retrieved ${sources.length} sources in ${retrievalLatencyMs}ms`);
+    // ========================================================================
+    // STEP 1: RESEARCH - Get sources using Exa
+    // ========================================================================
+    try {
+      const retrievalStart = Date.now();
+      console.log(`[${getTimestamp()}] [API] Starting research phase...`);
 
-    // Step 2: Answer - Generate answer using LLM with sources
-    const answerStart = Date.now();
-    const answer = await answerAgent(question, sources);
-    const answerLatencyMs = Date.now() - answerStart;
-    console.log(`[API] Generated answer with ${answer.blocks.length} blocks in ${answerLatencyMs}ms`);
+      sources = await researchAgent(question);
+      retrievalLatencyMs = Date.now() - retrievalStart;
 
-    // Step 3: Build evidence graph
-    const evidenceGraph = buildEvidenceGraph(question, answer, sources);
-    console.log(`[API] Built evidence graph with ${evidenceGraph.nodes.length} nodes and ${evidenceGraph.edges.length} edges`);
+      console.log(`[${getTimestamp()}] [API] ✓ Research complete`);
+      console.log(`[${getTimestamp()}] [API]   - Sources retrieved: ${sources.length}`);
+      console.log(`[${getTimestamp()}] [API]   - Retrieval latency: ${retrievalLatencyMs}ms`);
 
-    // Build response
+      if (sources.length === 0) {
+        console.log(`[${getTimestamp()}] [API] ⚠ Warning: No sources found for question`);
+        errors.push('No sources found');
+      }
+    } catch (error) {
+      retrievalLatencyMs = Date.now() - requestStart;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[${getTimestamp()}] [API] ✗ Research failed: ${errorMsg}`);
+      errors.push(`Research failed: ${errorMsg}`);
+
+      // Continue with empty sources - we can still try to generate an answer
+      sources = [];
+    }
+
+    // ========================================================================
+    // STEP 2: ANSWER - Generate answer using LLM with sources
+    // ========================================================================
+    try {
+      const answerStart = Date.now();
+      console.log(`[${getTimestamp()}] [API] Starting answer generation phase...`);
+
+      answer = await answerAgent(question, sources);
+      answerLatencyMs = Date.now() - answerStart;
+
+      console.log(`[${getTimestamp()}] [API] ✓ Answer generation complete`);
+      console.log(`[${getTimestamp()}] [API]   - Answer length: ${answer.text.length} characters`);
+      console.log(`[${getTimestamp()}] [API]   - Blocks generated: ${answer.blocks.length}`);
+      console.log(`[${getTimestamp()}] [API]   - Answer latency: ${answerLatencyMs}ms`);
+
+      if (answer.blocks.length === 0) {
+        console.log(`[${getTimestamp()}] [API] ⚠ Warning: Answer has no blocks`);
+        errors.push('Answer has no blocks');
+      }
+    } catch (error) {
+      answerLatencyMs = Date.now() - requestStart - retrievalLatencyMs;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[${getTimestamp()}] [API] ✗ Answer generation failed: ${errorMsg}`);
+      errors.push(`Answer generation failed: ${errorMsg}`);
+
+      // Use fallback answer
+      answer = createFallbackAnswer(errorMsg);
+      console.log(`[${getTimestamp()}] [API] Using fallback answer`);
+    }
+
+    // ========================================================================
+    // STEP 3: BUILD EVIDENCE GRAPH
+    // ========================================================================
+    try {
+      const graphStart = Date.now();
+      console.log(`[${getTimestamp()}] [API] Building evidence graph...`);
+
+      evidenceGraph = buildEvidenceGraph(question, answer, sources);
+      graphLatencyMs = Date.now() - graphStart;
+
+      console.log(`[${getTimestamp()}] [API] ✓ Evidence graph built`);
+      console.log(`[${getTimestamp()}] [API]   - Total nodes: ${evidenceGraph.nodes.length}`);
+      console.log(`[${getTimestamp()}] [API]   - Total edges: ${evidenceGraph.edges.length}`);
+      console.log(`[${getTimestamp()}] [API]   - Graph nodes by type:`);
+
+      // Count nodes by type for detailed logging
+      const nodeCounts = evidenceGraph.nodes.reduce((acc, node) => {
+        acc[node.type] = (acc[node.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      Object.entries(nodeCounts).forEach(([type, count]) => {
+        console.log(`[${getTimestamp()}] [API]     • ${type}: ${count}`);
+      });
+
+      console.log(`[${getTimestamp()}] [API]   - Graph latency: ${graphLatencyMs}ms`);
+    } catch (error) {
+      graphLatencyMs = Date.now() - requestStart - retrievalLatencyMs - answerLatencyMs;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[${getTimestamp()}] [API] ✗ Graph building failed: ${errorMsg}`);
+      errors.push(`Graph building failed: ${errorMsg}`);
+
+      // Use minimal graph
+      evidenceGraph = createMinimalGraph(question);
+      console.log(`[${getTimestamp()}] [API] Using minimal graph (question node only)`);
+    }
+
+    // ========================================================================
+    // BUILD AND SEND RESPONSE
+    // ========================================================================
+    const totalLatencyMs = Date.now() - requestStart;
+
+    console.log(`[${getTimestamp()}] [API] ========================================`);
+    console.log(`[${getTimestamp()}] [API] Request complete`);
+    console.log(`[${getTimestamp()}] [API]   - Total latency: ${totalLatencyMs}ms`);
+    console.log(`[${getTimestamp()}] [API]   - Breakdown:`);
+    console.log(`[${getTimestamp()}] [API]     • Retrieval: ${retrievalLatencyMs}ms (${((retrievalLatencyMs/totalLatencyMs)*100).toFixed(1)}%)`);
+    console.log(`[${getTimestamp()}] [API]     • Answer: ${answerLatencyMs}ms (${((answerLatencyMs/totalLatencyMs)*100).toFixed(1)}%)`);
+    console.log(`[${getTimestamp()}] [API]     • Graph: ${graphLatencyMs}ms (${((graphLatencyMs/totalLatencyMs)*100).toFixed(1)}%)`);
+
+    if (errors.length > 0) {
+      console.log(`[${getTimestamp()}] [API]   - Errors encountered: ${errors.length}`);
+      errors.forEach((err, idx) => {
+        console.log(`[${getTimestamp()}] [API]     ${idx + 1}. ${err}`);
+      });
+    }
+
+    console.log(`[${getTimestamp()}] [API] ========================================\n`);
+
     const response: AnswerResponse = {
       question,
       answer,
       sources,
       evidence_graph: evidenceGraph,
       meta: {
-        model: 'gpt-4o-mini',  // OpenAI GPT-4o mini model for answer generation
+        model: 'gpt-4o-mini',
         retrieval_latency_ms: retrievalLatencyMs,
         answer_latency_ms: answerLatencyMs,
-        total_latency_ms: retrievalLatencyMs + answerLatencyMs
+        graph_latency_ms: graphLatencyMs,
+        total_latency_ms: totalLatencyMs,
+        ...(errors.length > 0 && {
+          degraded: true,
+          errors: errors
+        })
       }
     };
 
     res.json(response);
+
   } catch (error) {
-    console.error('[API] Error processing request:', error);
+    // ========================================================================
+    // CATASTROPHIC ERROR HANDLER (should never reach here)
+    // ========================================================================
+    const totalLatencyMs = Date.now() - requestStart;
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
+    console.error(`[${getTimestamp()}] [API] ========================================`);
+    console.error(`[${getTimestamp()}] [API] ✗ CATASTROPHIC ERROR`);
+    console.error(`[${getTimestamp()}] [API] ${errorMsg}`);
+    if (error instanceof Error && error.stack) {
+      console.error(`[${getTimestamp()}] [API] Stack trace:`);
+      console.error(error.stack);
+    }
+    console.error(`[${getTimestamp()}] [API] ========================================\n`);
+
     res.status(500).json({
       error: 'Internal Server Error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: errorMsg,
+      meta: {
+        total_latency_ms: totalLatencyMs,
+        catastrophic_failure: true
+      }
     });
   }
 }

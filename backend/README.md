@@ -57,14 +57,16 @@ Type checking:
 npm run type-check
 ```
 
-Testing the research agent:
+Testing:
 ```bash
+# Test research agent (Exa integration)
 npm run test:research
-```
 
-Testing the answer agent:
-```bash
+# Test answer agent (OpenAI integration)
 npm run test:answer
+
+# Test evidence graph builder (Phase 4)
+npm run test:graph
 ```
 
 ## API Endpoints
@@ -106,20 +108,47 @@ Ask a question and receive a structured answer with sources and evidence graph.
   ],
   "evidence_graph": {
     "nodes": [
-      { "id": "q", "type": "question", "label": "What is AI transparency?" },
-      { "id": "ans-1", "type": "answer_block", "label": "AI transparency refers to..." },
-      { "id": "s1", "type": "source", "label": "Source Title" }
+      {
+        "id": "q",
+        "type": "question",
+        "label": "What is AI transparency?",
+        "metadata": { "layer": 0 }
+      },
+      {
+        "id": "answer",
+        "type": "answer_root",
+        "label": "AI transparency refers to the ability to understand...",
+        "metadata": { "layer": 0 }
+      },
+      {
+        "id": "ans-1",
+        "type": "answer_block",
+        "label": "AI transparency refers to...",
+        "metadata": { "layer": 1 }
+      },
+      {
+        "id": "s1",
+        "type": "source",
+        "label": "Source Title",
+        "metadata": { "layer": 2, "citationCount": 1 }
+      }
     ],
     "edges": [
-      { "from": "q", "to": "ans-1", "relation": "answers" },
+      { "from": "q", "to": "answer", "relation": "answers" },
+      { "from": "answer", "to": "ans-1", "relation": "answers" },
       { "from": "ans-1", "to": "s1", "relation": "supports" }
-    ]
+    ],
+    "metadata": {
+      "sourceCount": 1,
+      "blockCount": 1
+    }
   },
   "meta": {
     "model": "gpt-4o-mini",
     "retrieval_latency_ms": 500,
     "answer_latency_ms": 2500,
-    "total_latency_ms": 3000
+    "graph_latency_ms": 5,
+    "total_latency_ms": 3005
   }
 }
 ```
@@ -189,10 +218,53 @@ backend/
 - Graceful fallback when LLM unavailable
 - Test harness for unit testing (`npm run test:answer`)
 
+### ✅ Phase 4: Evidence Graph with Answer Root Node (Complete)
+- **Answer-centric graph topology** - Answer at center, not question
+- Graph structure designed for 3D visualization:
+  - **Layer 0 (Center):** Answer root node + Question node (side connection)
+  - **Layer 1:** Answer blocks radiating from center
+  - **Layer 2:** Sources at periphery
+- New node type: `answer_root` (central node representing complete answer)
+- Edge relationships:
+  - `question → answer_root` (answers relation)
+  - `answer_root → blocks` (answers relation)
+  - `blocks → sources` (supports relation)
+- Smart features:
+  - Label truncation at word boundaries for readability
+  - Citation count metadata on source nodes
+  - Edge deduplication (same source cited multiple times)
+  - Layer metadata for 3D positioning
+  - Full text preservation in node metadata
+- Validation and error handling:
+  - GraphBuildError for structural issues
+  - Warnings (not failures) for missing source references
+  - Duplicate ID detection
+- Test harness: `npm run test:graph`
+
+### ✅ Phase 5: Production Hardening & DX (Complete)
+- **Comprehensive error handling** in `/api/answer`:
+  - Research failures: Continue with empty sources, log error, mark degraded
+  - Answer failures: Use fallback answer, preserve partial data
+  - Graph failures: Return minimal graph (question node only)
+  - **Never crashes server** - graceful degradation for all failures
+- **Detailed logging** with ISO timestamps:
+  - Request start with question text
+  - Per-phase logging (research, answer, graph)
+  - Source counts and retrieval latency
+  - Answer length, block count, and generation latency
+  - Graph node/edge counts broken down by type
+  - Total latency with percentage breakdown
+  - Error tracking with detailed messages
+- **Security:** No API keys or full_text in logs
+- **Enhanced response metadata:**
+  - `graph_latency_ms` - Time to build evidence graph
+  - `degraded` flag - Indicates partial failure
+  - `errors` array - Detailed error messages for debugging
+
 ### 🚧 Future Enhancements
 - Rate limiting
 - Caching layer for repeated queries
-- More comprehensive testing suite
+- Advanced graph metrics (centrality, clustering)
 - Performance optimizations
 
 ## Development Notes

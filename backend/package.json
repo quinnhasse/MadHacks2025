@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "test:research": "tsx scripts/test-research-agent.ts",
-    "test:answer": "tsx scripts/test-answer-agent.ts"
+    "test:answer": "tsx scripts/test-answer-agent.ts",
+    "test:graph": "tsx scripts/test-evidence-graph.ts"
   },
   "keywords": [
     "ai",
