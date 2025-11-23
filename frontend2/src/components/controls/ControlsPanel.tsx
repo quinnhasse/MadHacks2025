@@ -35,7 +35,7 @@ export function ControlsPanel({
       style={{
         position: 'absolute',
         top: PANEL_STYLES.TOP,
-        right: PANEL_STYLES.RIGHT,
+        left: PANEL_STYLES.LEFT,
         zIndex: 10,
         minWidth: '280px',
         background: PANEL_STYLES.BG,

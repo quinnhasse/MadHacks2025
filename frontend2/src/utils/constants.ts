@@ -38,7 +38,7 @@ export const PANEL_STYLES = {
 
   // Positioning
   TOP: '24px',
-  RIGHT: '24px',
+  LEFT: '24px',
   BORDER_RADIUS: '12px',
   PADDING: '16px',
 };
