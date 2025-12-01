@@ -1,112 +1,118 @@
 # Lexon AI
 
-> **Lexon AI Answers You Can Trust**
+> Transparent Answers with a 3D Evidence Graph
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg)](https://reactjs.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-0.160-000000.svg)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-R3F-000000.svg)](https://threejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.18-green.svg)](https://expressjs.com/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991.svg)](https://openai.com/)
-[![Exa](https://img.shields.io/badge/Exa-API-orange.svg)](https://exa.ai/)
+[![Exa](https://img.shields.io/badge/Exa-Neural_Search-orange.svg)](https://exa.ai/)
 
-Lexon AI is a revolutionary answer system that eliminates the "AI black box" problem. Unlike traditional AI systems, every answer is fully transparent with complete source attribution and an interactive 3D evidence graph that visualizes exactly how conclusions are reached.
+<p align="center">
+  <img src="readme_assets/lexon-thumbnail.png" width="75%" alt="Lexon AI overview thumbnail" />
+</p>
 
-Built for **MadHacks 2025**.
+Lexon AI is a transparent answer system that solves the "AI black box" problem. Every answer is fully verifiable through source attribution and an interactive 3D evidence graph that visualizes exactly how conclusions are reached.
+
+**Built for MadHacks 2025.**
+
+### Project Links
+
+- **Demo Website:** [lexon-ai.vercel.app](https://lexon-ai.vercel.app/)
+- **Devpost Project Page:** [devpost.com/software/lexon](https://devpost.com/software/lexon)
 
 ---
 
-## The Problem
+## Overview
 
-Traditional AI systems generate answers from their training data with no way to verify claims or trace reasoning. Users are left trusting a black box, unable to distinguish fact from hallucination.
+Traditional AI systems generate answers from training data with no way to verify claims or trace reasoning. Users are left trusting a black box, unable to distinguish fact from hallucination.
 
-## The Solution
+Lexon AI enforces transparency through strict separation of concerns:
 
-Lexon AI uses **strict separation of concerns**:
+- **User question** is received
+- **Exa neural search** retrieves relevant web sources
+- **GPT-4o-mini** generates answers using ONLY those sources (never training data)
+- **Evidence graph builder** constructs a 4-layer graph linking claims to sources
+- **3D visualization** lets users explore the reasoning interactively
 
-1. **Research Agent** retrieves sources from the web via Exa API
-2. **Answer Agent** generates answers using ONLY those sources (no training data)
-3. **Evidence Graph Builder** constructs a multi-layer graph linking questions → answer blocks → sources
-4. **3D Visualization** lets you explore the reasoning process interactively
+Every claim is traceable. Every source is verifiable.
 
-Every claim is traceable. Every source is verifiable. Complete transparency.
+---
+
+## AI Transparency Platform
+
+Lexon functions as a complete AI transparency platform with three core components: a research agent (Exa), an answer agent (GPT-4o-mini constrained to sources), and an evidence graph builder that links every claim to its origin.
+
+<p align="center">
+  <img src="readme_assets/knowledge-deck-view.png" width="85%" alt="Lexon AI Knowledge Deck view: query, logic feed, and evidence feed" />
+</p>
+
+The **Knowledge Deck** view provides structured transparency:
+
+- **Query Stream** — The original question and synthesized answer blocks
+- **Logic Feed** — Reasoning chunks showing key claims with source citations
+- **Evidence Feed** — Ranked sources from Exa with relevance scores (0-100%)
+
+<p align="center">
+  <img src="readme_assets/architecture-diagram.png" width="85%" alt="Lexon AI architecture diagram: frontend, backend, and external APIs" />
+</p>
+
+**Architecture Overview:**
+
+- **Frontend** — Vite + React + React Three Fiber for 3D graph visualization
+- **Backend** — Node/Express API with research agent, answer agent, and graph builder
+- **External APIs** — Exa for neural search, OpenAI for constrained answer generation
+
+---
+
+## Visual Simulation
+
+The 3D evidence graph places the answer at center with concepts, sources, and supporting evidence orbiting in concentric layers—like exploring a solar system of knowledge.
+
+<p align="center">
+  <img src="readme_assets/cluster-view.png" width="95%" alt="Lexon AI 3D cluster view of answer, concepts, and sources" />
+</p>
+
+**Layout Modes:**
+
+- **Cluster** — Hierarchical grouping with orbit-style paths (default)
+- **Circular** — 2D radial layout for simpler exploration
+- **Globe** — Nodes distributed on a 3D sphere surface
+- **Knowledge Deck** — Structured panel view with query/logic/evidence feeds
+- **Baseline** — Flat layer-based arrangement
+
+**Color Modes:** White (clean monochrome), By Level (depth-based), By Role (node type), By Tier (layer hierarchy)
+
+### Evidence Lines, Scores, and Expansion
+
+The connecting lines represent relationships:
+- `answers` — Question to answer, answer to blocks
+- `supports` — Blocks to sources (citations)
+- `underpins` — Sources to supporting concepts
+- `semantic_related` — Similarity-based connections
+
+Each source displays a **relevance score** (0-100%) from Exa's neural search, visible in the Evidence Feed and node details.
+
+The **expand** function transforms a source node into a richer concept subgraph, enabling deeper research exploration—turning Lexon into a research lens, not just an answer.
+
+<p align="center">
+  <img src="readme_assets/expand-function.png" width="65%" alt="Expand function: turning a source node into a richer concept subgraph" />
+</p>
 
 ---
 
 ## Key Features
 
-- **Verifiable Answers**: The LLM can ONLY use retrieved sources, never its training data
-- **Structured Responses**: Answers broken into logical conceptual blocks with explicit citations
-- **Interactive 3D Graphs**: Explore evidence relationships with React Three Fiber visualization
-- **Multi-Layer Architecture**: 4-layer graph (question → answer → sources → supporting concepts)
-- **Multiple Visualizations**: Switch between flat, spherical, and layered layouts with white/rainbow/semantic coloring
-- **Graceful Degradation**: System continues functioning even when individual components fail
-- **Real-Time Generation**: Watch answers and graphs build dynamically
-
----
-
-## How It Works
-
-```
-User Question
-    ↓
-Research Agent (Exa API)
-    ↓  Retrieves 6-12 relevant sources
-    ↓
-Answer Agent (GPT-4o-mini)
-    ↓  Generates answer ONLY using sources
-    ↓  Structures into conceptual blocks
-    ↓
-Evidence Graph Builder
-    ↓  Constructs 4-layer graph
-    ↓  Adds semantic similarity edges
-    ↓
-3D Visualization (React Three Fiber)
-    ↓  Interactive exploration
-    ↓
-User sees transparent, verifiable answer
-```
-
-### Evidence Graph Architecture (4 Layers)
-
-The graph is **answer-centric** with concentric layers:
-
-- **Layer 0** (center): `answer_root` node + `question` node (side connection)
-- **Layer 1**: `answer_block` nodes - distinct concepts radiating from center
-- **Layer 2**: `direct_source` nodes - primary evidence at periphery
-- **Layer 3**: `secondary_source` nodes - supporting concepts underpinning sources
-
-**Edge Types:**
-- `answers`: question→answer_root, answer_root→blocks (structural)
-- `supports`: blocks→sources (citation)
-- `underpins`: source→secondary_source (supporting)
-- `semantic_related`: weighted similarity edges between related nodes
-
----
-
-## Tech Stack
-
-### Backend
-- **TypeScript** - Type-safe implementation
-- **Node.js** + **Express** - API server
-- **Exa API** - Neural search for source retrieval
-- **OpenAI GPT-4o-mini** - Answer generation (with strict source constraints)
-- **Custom Embeddings** - Semantic similarity for graph enhancement
-
-### Frontend
-- **React 18** - Component architecture
-- **Vite** - Fast dev server and build tool
-- **React Three Fiber** - React renderer for Three.js
-- **@react-three/drei** - 3D helpers and abstractions
-- **Three.js** - WebGL 3D rendering
-- **Framer Motion** - UI animations
-- **@react-spring/three** - Physics-based node animations
-
-### Visualization
-- 3D force-directed graph layout
-- Particle flow animations on edges
-- Dynamic camera controls (orbit, pan, zoom)
-- Hover effects and selection states
-- Background particle system
+- **Evidence-first pipeline** — LLM restricted to retrieved sources only
+- **4-layer evidence graph** — Question → Answer → Direct sources → Supporting concepts
+- **Multiple 3D layouts** — Cluster, circular, globe, knowledge deck, baseline
+- **Color-coded visualization** — By level, role, tier, or clean white theme
+- **Knowledge Deck view** — Structured query/logic/evidence feeds
+- **Expandable sources** — Click to explore deeper research subgraphs
+- **Real-time graph construction** — Watch answers and graphs build dynamically
+- **Smooth camera controls** — Orbit, pan, zoom with hover/click interactions
+- **Graceful degradation** — System continues if research or generation partially fails
 
 ---
 
@@ -114,317 +120,31 @@ The graph is **answer-centric** with concentric layers:
 
 ### Prerequisites
 
-- **Node.js 18+** (for backend and frontend)
+- **Node.js 18+**
 - **npm** or **pnpm**
-- **Exa API Key** ([get one here](https://exa.ai/))
-- **OpenAI API Key** ([get one here](https://platform.openai.com/))
+- **Exa API Key** — [exa.ai](https://exa.ai/)
+- **OpenAI API Key** — [platform.openai.com](https://platform.openai.com/)
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/Lexon-ai.git
-cd Lexon-ai
+git clone https://github.com/yourusername/lexon-ai.git
+cd lexon-ai
 
 # Install backend dependencies
 cd backend
 npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env and add your API keys:
-#   EXA_API_KEY=your_exa_api_key_here
-#   LLM_API_KEY=your_openai_api_key_here
 
 # Install frontend dependencies
 cd ../frontend
 npm install
 ```
 
-### Running the Application
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-npm run dev
-# Server starts on http://localhost:3001
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
-# Frontend starts on http://localhost:5173
-```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-### Example API Call
-
-```bash
-curl -X POST http://localhost:3001/api/answer \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What is AI transparency and why does it matter?",
-    "density": "medium"
-  }'
-```
-
-**Response:**
-```json
-{
-  "question": "What is AI transparency...",
-  "answer": {
-    "blocks": [
-      {
-        "id": "block_1",
-        "type": "paragraph",
-        "text": "AI transparency refers to...",
-        "source_ids": ["src_1", "src_2"]
-      }
-    ]
-  },
-  "sources": [...],
-  "evidence_graph": {
-    "nodes": [...],
-    "edges": [...]
-  },
-  "meta": {
-    "degraded": false,
-    "timestamp": "2025-11-23T..."
-  }
-}
-```
-
----
-
-## Project Structure
-
-```
-Lexon-ai/
-├── backend/                      # Node.js/TypeScript API server
-│   ├── src/
-│   │   ├── index.ts              # Express server setup
-│   │   ├── routes/
-│   │   │   └── answer.ts         # POST /api/answer endpoint
-│   │   ├── services/
-│   │   │   ├── researchAgent.ts  # Exa-based source retrieval
-│   │   │   ├── answerAgent.ts    # GPT-4o-mini answer generation
-│   │   │   ├── evidenceGraph.ts  # Graph construction
-│   │   │   ├── secondarySourceAgent.ts  # Layer 3 extraction
-│   │   │   ├── semanticGraphBuilder.ts  # Similarity edges
-│   │   │   └── labelGenerator.ts # Short label generation
-│   │   ├── types/
-│   │   │   └── shared.ts         # TypeScript definitions
-│   │   └── config/
-│   │       └── config.ts         # Environment variables
-│   ├── scripts/                  # Test scripts
-│   │   ├── test-research-agent.ts
-│   │   ├── test-answer-agent.ts
-│   │   └── test-evidence-graph.ts
-│   └── package.json
-│
-└── frontend/                     # React/Vite 3D visualization
-    ├── src/
-    │   ├── App.tsx               # Main application state
-    │   ├── components/
-    │   │   ├── GraphVisualization.tsx  # 3D scene orchestrator
-    │   │   ├── Node.tsx          # Individual node rendering
-    │   │   ├── AnimatedNode.tsx  # Spring physics nodes
-    │   │   ├── Edge.tsx          # Connection rendering
-    │   │   ├── ParticleSystem.tsx # Background particles
-    │   │   ├── ControlsPanel.tsx # Layout/color controls
-    │   │   ├── SearchBar.tsx     # Question input
-    │   │   └── DetailPanel.tsx   # Node detail view
-    │   ├── types/
-    │   │   └── index.ts          # Frontend type definitions
-    │   └── main.tsx
-    └── package.json
-```
-
----
-
-## API Documentation
-
-### `POST /api/answer`
-
-Generate a transparent answer with evidence graph.
-
-**Request Body:**
-```json
-{
-  "question": "Your question here",
-  "density": "medium"  // optional: "low" | "medium" | "high"
-}
-```
-
-**Parameters:**
-- `question` (required): The question to answer
-- `density` (optional): Controls graph complexity
-  - `low`: 6 sources, simpler graph
-  - `medium`: 9 sources (default)
-  - `high`: 12 sources, richer graph
-
-**Response:**
-```json
-{
-  "question": "Your question here",
-  "answer": {
-    "blocks": [
-      {
-        "id": "block_1",
-        "type": "paragraph",
-        "text": "Answer text...",
-        "source_ids": ["src_1", "src_2"],
-        "label": "Main Concept",
-        "shortLabel": "Concept"
-      }
-    ]
-  },
-  "sources": [
-    {
-      "id": "src_1",
-      "url": "https://example.com/article",
-      "title": "Article Title",
-      "text": "Excerpt from source...",
-      "author": "Author Name",
-      "publishedDate": "2025-01-15"
-    }
-  ],
-  "evidence_graph": {
-    "nodes": [
-      {
-        "id": "node_1",
-        "type": "answer_block",
-        "label": "Main Concept",
-        "shortLabel": "Concept",
-        "metadata": {
-          "layer": 1,
-          "sourceId": "block_1"
-        }
-      }
-    ],
-    "edges": [
-      {
-        "source": "answer_root",
-        "target": "node_1",
-        "relation": "answers",
-        "weight": 1.0
-      }
-    ]
-  },
-  "meta": {
-    "degraded": false,
-    "timestamp": "2025-11-23T12:00:00Z",
-    "researchTimeMs": 1234,
-    "answerTimeMs": 5678
-  }
-}
-```
-
-**Error Handling:**
-- If research fails: Returns empty sources array with `degraded: true`
-- If answer generation fails: Returns fallback answer listing available sources
-- System never crashes - always returns valid JSON
-
----
-
-## Architecture Deep Dive
-
-### Design Principles
-
-1. **Separation of Concerns**: Research and answer generation are independent processes
-2. **Source Constraint**: LLM can ONLY use retrieved sources, never training data
-3. **Structured Output**: Answers broken into conceptual blocks (not arbitrary chunks)
-4. **Transparency**: Every claim traceable via evidence graph
-5. **Graceful Degradation**: Individual component failures don't crash the system
-
-### Answer Blocks as Conceptual Units
-
-**IMPORTANT:** Blocks represent **distinct concepts**, not arbitrary text splits:
-- Simple questions: 1-2 blocks
-- Complex questions: 3-8 blocks
-- Each block forms a logical branch in visualization
-- Only create new blocks for genuinely distinct concepts
-
-### Error Handling Philosophy
-
-All services follow the pattern:
-1. Input validation (fail fast)
-2. API calls with exponential backoff retries
-3. Graceful degradation on failure
-4. Structured logging
-5. Return degraded data instead of throwing
-
-**Examples:**
-- Research failures → continue with empty sources
-- Answer failures → use fallback listing sources
-- Graph failures → return minimal graph (question node only)
-- Enhancement failures (L3, semantic edges) → log warning, continue without
-
-### Frontend Visualization
-
-**Layout Modes:**
-- **Flat**: 2D circular layout for simple exploration
-- **Spherical**: 3D sphere surface for aesthetic view
-- **Layered**: Concentric shells by graph depth (recommended)
-
-**Color Modes:**
-- **White**: Clean monochrome theme
-- **Rainbow**: Colorful node differentiation
-- **Semantic**: Color by node type/layer (recommended)
-
-**Controls:**
-- Mouse drag: Rotate camera
-- Mouse wheel: Zoom in/out
-- Right-click drag: Pan camera
-- Hover: Highlight node and connections
-- Click: Select node (shows details in panel)
-
----
-
-## Development
-
-### Backend Development
-
-```bash
-cd backend
-
-# Development server with auto-reload
-npm run dev
-
-# Type checking
-npm run type-check
-
-# Build for production
-npm run build
-npm start
-
-# Test individual components
-npm run test:research   # Test Exa API integration
-npm run test:answer     # Test OpenAI answer generation
-npm run test:graph      # Test evidence graph construction
-npm run test:enhanced   # Test enhanced graph with semantic edges
-```
-
-### Frontend Development
-
-```bash
-cd frontend
-
-# Development server
-npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-### Environment Variables
+### Environment Setup
 
 Create `backend/.env`:
+
 ```env
 EXA_API_KEY=your_exa_api_key_here
 LLM_API_KEY=your_openai_api_key_here
@@ -432,96 +152,158 @@ PORT=3001
 NODE_ENV=development
 ```
 
-### Logging
+### Running the Application
 
-All logs follow: `[ServiceName] Message with context`
+**Terminal 1 — Backend:**
+```bash
+cd backend
+npm run dev
+# API at http://localhost:3001
+```
 
-Examples:
-```typescript
-console.log('[ResearchAgent] Searching for: "What is AI transparency?"');
-console.log('[AnswerAgent] Generated answer with 5 blocks');
-console.log('[EvidenceGraph] Added 12 semantic edges');
-console.warn('[AnswerAgent] Failed to generate labels, using fallbacks');
-console.error('[ResearchAgent] Error calling Exa API:', error);
+**Terminal 2 — Frontend:**
+```bash
+cd frontend
+npm run dev
+# UI at http://localhost:5173
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## Usage
+
+1. **Open the frontend** at localhost:5173
+2. **Enter a question** in the input field (e.g., "What is AI transparency?")
+3. **Wait for processing** — Exa searches, GPT generates, graph builds (~3-8 seconds)
+4. **Explore the 3D graph** — Rotate (drag), zoom (scroll), pan (right-drag)
+5. **Click nodes** to view full content, sources, and metadata
+6. **Switch layouts** — Use controls to toggle cluster/circular/globe/deck views
+7. **Expand sources** — Click a source node to explore deeper subgraphs
+
+---
+
+## Project Structure
+
+```
+lexon-ai/
+├── backend/                      # Node.js/TypeScript API server
+│   ├── src/
+│   │   ├── index.ts              # Express server entry
+│   │   ├── routes/
+│   │   │   └── answerRoute.ts    # POST /api/answer endpoint
+│   │   ├── services/
+│   │   │   ├── researchAgent.ts  # Exa-based source retrieval
+│   │   │   ├── answerAgent.ts    # GPT-4o-mini answer generation
+│   │   │   ├── evidenceGraph.ts  # 4-layer graph construction
+│   │   │   ├── secondarySourceAgent.ts  # Layer 3 extraction
+│   │   │   └── semanticGraphBuilder.ts  # Similarity edges
+│   │   ├── types/
+│   │   │   └── shared.ts         # TypeScript definitions
+│   │   └── config/
+│   │       └── config.ts         # Environment configuration
+│   └── scripts/                  # Test scripts
+│
+├── frontend/                     # React/Vite 3D visualization
+│   ├── src/
+│   │   ├── App.tsx               # Main application state
+│   │   ├── components/
+│   │   │   ├── GraphVisualization.tsx  # 3D scene orchestrator
+│   │   │   ├── KnowledgeDeck.tsx       # Structured panel view
+│   │   │   ├── Node.tsx                # Individual node rendering
+│   │   │   ├── Edge.tsx                # Connection rendering
+│   │   │   ├── NodeDetailPanel.tsx     # Node detail modal
+│   │   │   └── controls/               # Layout/color controls
+│   │   ├── utils/
+│   │   │   ├── layoutEngine.ts   # Layout algorithms
+│   │   │   └── colorPalettes.ts  # Color mode logic
+│   │   └── types/
+│   │       └── index.ts          # Frontend type definitions
+│   └── public/
+│       └── examples/             # Demo data for fallback
+│
+└── readme_assets/                # Documentation images
 ```
 
 ---
 
-## Performance Considerations
+## API Endpoints
 
-### Backend
-- **Source truncation**: Each source limited to 1000 chars to manage context
-- **Total context budget**: 30,000 chars max to prevent token overflow
-- **Embedding batching**: Semantic graph builder processes in batches
-- **Density levels**: Control graph complexity (6-12 sources)
+### `POST /api/answer`
+
+Generate a transparent answer with evidence graph.
+
+**Request:**
+```json
+{
+  "question": "What is AI transparency?",
+  "density": "medium"
+}
+```
+
+**Parameters:**
+- `question` (required) — The question to answer
+- `density` (optional) — `"low"` (6 sources), `"medium"` (9, default), `"high"` (12)
+
+**Response:**
+```json
+{
+  "question": "What is AI transparency?",
+  "answer": {
+    "blocks": [
+      { "id": "block_1", "type": "paragraph", "text": "...", "source_ids": ["src_1", "src_2"] }
+    ]
+  },
+  "sources": [
+    { "id": "src_1", "url": "https://...", "title": "...", "text": "...", "score": 0.95 }
+  ],
+  "evidence_graph": {
+    "nodes": [...],
+    "edges": [...]
+  },
+  "meta": { "degraded": false, "timestamp": "..." }
+}
+```
+
+### `GET /health`
+
+Health check endpoint returning server status and environment.
+
+---
+
+## Technologies
 
 ### Frontend
-- **Node instancing**: Use instanced meshes for many nodes
-- **LOD (Level of Detail)**: Reduce geometry for distant nodes
-- **Frustum culling**: Three.js handles off-screen optimization
-- **Animation throttling**: Spring physics (not continuous updates)
-- **Tested with graphs up to 50 nodes**
 
----
+- **React 18** — Component architecture
+- **Vite** — Fast dev server and builds
+- **React Three Fiber** — React renderer for Three.js
+- **@react-three/drei** — 3D helpers and abstractions
+- **Three.js** — WebGL 3D rendering
+- **Framer Motion** — UI animations
+- **@react-spring/three** — Physics-based node animations
+- **Lucide React** — Icon library
 
-## Known Limitations
+### Backend
 
-- Backend requires valid API keys (EXA_API_KEY, LLM_API_KEY)
-- Exa API has rate limits (~100 requests/day on free tier)
-- OpenAI API costs: ~$0.001-0.01 per answer
-- Large graphs (>50 nodes) may impact frontend performance
-- Secondary source extraction and semantic edges add ~2-5s latency
-- No caching yet (every request hits APIs)
+- **Node.js + Express** — API server
+- **TypeScript** — Type-safe implementation
+- **Exa API** — Neural search for source retrieval
+- **OpenAI GPT-4o-mini** — Constrained answer generation
+- **Custom embeddings** — Semantic similarity for graph enhancement
 
----
+### Infrastructure
 
-## Future Enhancements
-
-- [ ] **Caching layer** - Redis for repeated queries
-- [ ] **Rate limiting** - Per-IP request throttling
-- [ ] **Additional LLM providers** - Claude, Gemini support
-- [ ] **Graph analytics** - Centrality, clustering metrics
-- [ ] **Advanced filtering** - Filter by node type, date, source credibility
-- [ ] **Export functionality** - Save graphs as JSON, PNG, or interactive HTML
-- [ ] **Collaborative exploration** - Multi-user graph viewing
-- [ ] **Mobile-optimized UI** - Touch controls for 3D navigation
-- [ ] **Progressive graph loading** - Stream nodes as they're generated
-- [ ] **Source credibility scoring** - Rank sources by authority
-
----
-
-## Contributing
-
-This project was built for MadHacks 2025 as a demonstration of transparent AI architecture. Contributions, suggestions, and feedback are welcome!
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the existing code patterns (see `CLAUDE.md` for detailed guidelines)
-4. Test your changes (`npm run test:*` in backend)
-5. Commit with clear messages
-6. Push to your fork
-7. Open a Pull Request
-
----
-
-## Built For MadHacks 2025
-
-Lexon AI was created to demonstrate that AI systems can be both powerful and transparent. By separating research from reasoning and visualizing the evidence graph, we show that users shouldn't have to trust a black box.
-
-**Team:** [Your team info here]
-
-**Technologies:** TypeScript, React, Three.js, OpenAI, Exa
-
-**Hackathon:** MadHacks 2025
+- **Vercel** — Frontend deployment
+- **Render** — Backend deployment
 
 ---
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details
+MIT License — See [LICENSE](LICENSE) for details.
 
 ---
 
-**Made with transparency at MadHacks 2025**
+**Built with transparency at MadHacks 2025**
