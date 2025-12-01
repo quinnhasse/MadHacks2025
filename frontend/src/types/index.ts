@@ -21,6 +21,7 @@ export interface QuestionNode extends GraphNode {
   metadata: {
     layer: 0;
     fullText: string;
+    [key: string]: any;
   };
 }
 
@@ -30,6 +31,7 @@ export interface AnswerRootNode extends GraphNode {
   metadata: {
     layer: 0;
     fullText: string;
+    [key: string]: any;
   };
 }
 
@@ -40,6 +42,7 @@ export interface AnswerBlockNode extends GraphNode {
     layer: 1;
     fullText: string;
     blockType?: 'paragraph' | 'bullet';
+    [key: string]: any;
   };
 }
 
@@ -51,6 +54,8 @@ export interface DirectSourceNode extends GraphNode {
     url?: string;
     snippet?: string;
     full_text?: string;
+    fullText?: string;
+    text?: string;
     score?: number;
     provider?: string;
     publishedDate?: string;
@@ -58,6 +63,7 @@ export interface DirectSourceNode extends GraphNode {
     highlights?: string[];
     favicon?: string;
     image?: string;
+    [key: string]: any;
   };
 }
 
@@ -67,11 +73,15 @@ export interface SecondarySourceNode extends GraphNode {
   metadata: {
     layer: 3;
     fullText?: string;
+    text?: string;
+    snippet?: string;
+    score?: number;
     primaryParentId?: string;
     parentSourceId?: string;
     relatedBlockIds?: string[];
     branchId?: string;
     importance?: number;
+    [key: string]: any;
   };
 }
 
@@ -139,6 +149,7 @@ export interface ReasoningResponse {
 // Layout and visualization modes
 export type LayoutMode = 'cluster' | 'circular' | 'flat' | 'globe' | 'deck';
 export type ColorMode = 'white' | 'byLevel' | 'byRole' | 'byTier';
+export type ColorPaletteName = 'tactical' | 'cyberpunk' | 'sunset' | 'ocean';
 
 export interface LayoutConfig {
   mode: LayoutMode;
