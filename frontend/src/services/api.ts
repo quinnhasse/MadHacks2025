@@ -2,13 +2,22 @@ import { ReasoningResponse } from '../types';
 
 /**
  * Configuration for the API client
+ *
+ * IMPORTANT: In production, VITE_API_BASE_URL must be set.
+ * No localhost fallback - this ensures we don't accidentally use localhost in production.
  */
 const API_CONFIG = {
-  baseUrl: (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 60000, // 60 seconds
+  isDemoMode: import.meta.env.VITE_DEMO_MODE === 'true',
 };
 
+// Log configuration on startup
+console.log('🌐 Using backend endpoint:', API_CONFIG.baseUrl || '(not configured)');
+console.log('📊 Demo mode:', API_CONFIG.isDemoMode);
+
 export const API_BASE_URL = API_CONFIG.baseUrl;
+export const IS_DEMO_MODE = API_CONFIG.isDemoMode;
 
 /**
  * Custom error class for API errors

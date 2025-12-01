@@ -10,7 +10,7 @@ import { LoadingOverlay } from './components/LoadingOverlay'
 import ColorLegend from './components/ColorLegend'
 import { Node, Edge, ReasoningResponse, LayoutMode, ColorMode } from './types'
 import { transformResponseToGraph } from './utils/graphTransform'
-import { askQuestion, ApiError } from './services/api'
+import { askQuestion, ApiError, API_BASE_URL, IS_DEMO_MODE } from './services/api'
 import { v4 as uuidv4 } from 'uuid'
 import './App.css'
 
@@ -127,8 +127,7 @@ function App() {
 
   // Poll backend for progress updates
   const startProgressPolling = (jobId: string) => {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
-
+    // API_BASE_URL is now imported from services/api.ts
     pollingIntervalRef.current = window.setInterval(async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/progress/${jobId}`)
@@ -221,55 +220,66 @@ function App() {
         setShowControls(true)
       }, 800)
     } catch (error) {
-      console.warn('⚠️ Backend unavailable, loading demo data...')
-      
       if (error instanceof ApiError) {
         console.error('API Error Details:', error.message, error.status)
       }
 
       setBackendProgress(100)
       setDisplayProgress(100)
-      setLoadingStatus('Ready')
       cleanupPolling()
 
-      try {
-        const exampleResponse = await fetch('/examples/example-response.json')
-        if (!exampleResponse.ok) {
-          throw new Error('Failed to load demo data')
-        }
+      // Only load demo data if explicitly in demo mode
+      if (IS_DEMO_MODE) {
+        console.warn('⚠️ Backend unavailable, loading demo data (VITE_DEMO_MODE=true)...')
+        setLoadingStatus('Loading demo...')
 
-        const data: ReasoningResponse = await exampleResponse.json()
-        console.log('📊 Loaded demo data successfully')
-        setIsDemoMode(true)
+        try {
+          const exampleResponse = await fetch('/examples/example-response.json')
+          if (!exampleResponse.ok) {
+            throw new Error('Failed to load demo data')
+          }
 
-        const graphData = transformResponseToGraph(data)
-        setNodes(graphData.nodes)
-        setEdges(graphData.edges)
+          const data: ReasoningResponse = await exampleResponse.json()
+          console.log('📊 Loaded demo data successfully')
+          setIsDemoMode(true)
+          setLoadingStatus('Ready')
 
-        setTimeout(() => {
-          setIsLoading(false)
-        }, 150)
+          const graphData = transformResponseToGraph(data)
+          setNodes(graphData.nodes)
+          setEdges(graphData.edges)
 
-        const answerRootNode = graphData.nodes.find(n => n.type === 'answer_root')
-        if (answerRootNode) {
-          setSelectedNode(answerRootNode)
-          setSidebarExpanded(false) 
           setTimeout(() => {
-            setSidebarExpanded(true)
-          }, 100)
+            setIsLoading(false)
+          }, 150)
+
+          const answerRootNode = graphData.nodes.find(n => n.type === 'answer_root')
+          if (answerRootNode) {
+            setSelectedNode(answerRootNode)
+            setSidebarExpanded(false)
+            setTimeout(() => {
+              setSidebarExpanded(true)
+            }, 100)
+          }
+
+          setTimeout(() => {
+            const allNodeIds = new Set(graphData.nodes.map(n => n.id))
+            setHighlightedNodes(allNodeIds)
+          }, 500)
+
+          setTimeout(() => {
+            setShowControls(true)
+          }, 800)
+        } catch (fallbackError) {
+          console.error('❌ Failed to load demo data:', fallbackError)
+          setLoadingStatus('Error')
+          setIsLoading(false)
         }
-
-        setTimeout(() => {
-          const allNodeIds = new Set(graphData.nodes.map(n => n.id))
-          setHighlightedNodes(allNodeIds)
-        }, 500)
-
-        setTimeout(() => {
-          setShowControls(true)
-        }, 800)
-      } catch (fallbackError) {
-        console.error('❌ Failed to load demo data:', fallbackError)
+      } else {
+        // Production mode: show error to user instead of silent fallback
+        console.error('❌ Backend request failed. API endpoint:', API_BASE_URL || '(not configured)')
+        setLoadingStatus('Error - Backend unavailable')
         setIsLoading(false)
+        // TODO: Could add a user-visible error state here
       }
     }
   }
